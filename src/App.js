@@ -3,6 +3,7 @@ import './App.css';
 import AttendanceView from './pages/AttendanceView';
 import AddStudent from './pages/AddStudent';
 import InactiveStudents from './pages/InactiveStudents';
+import AbsentStudents from './pages/AbsentStudents';
 import PinLogin from './pages/PinLogin';
 import Settings from './pages/Settings';
 import AttendanceControl from './components/AttendanceControl';
@@ -48,7 +49,7 @@ const App = () => {
 
   // Load students from database on initial render
   useEffect(() => {
-    fetch('http://localhost:3001/students')
+    fetch(`${window.location.protocol}//${window.location.hostname}:3001/students`)
       .then(res => res.json())
       .then(data => setStudents(data))
       .catch(e => {
@@ -94,7 +95,7 @@ const App = () => {
       
       // Save to database
       try {
-        const response = await fetch(`http://localhost:3001/students/${studentId}`, {
+        const response = await fetch(`${window.location.protocol}//${window.location.hostname}:3001/students/${studentId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(updatedStudent)
@@ -102,6 +103,36 @@ const App = () => {
         
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        // WhatsApp messages will be sent when day is saved/locked
+        
+        // Save absent students when marked absent
+        if (newStatus === false) {
+          const absentRecord = {
+            id: Date.now(),
+            student_id: studentId,
+            student_name: `${student.firstName} ${student.lastName}`,
+            phone_number: student.phoneNumber,
+            absent_date: `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`,
+            reason: ''
+          };
+          
+          // Try server first, fallback to localStorage
+          fetch(`${window.location.protocol}//${window.location.hostname}:3001/absent-students`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(absentRecord)
+          })
+          .then(response => response.json())
+          .then(data => console.log('Absent student saved to server:', data))
+          .catch(e => {
+            // Fallback to localStorage
+            const savedAbsent = JSON.parse(localStorage.getItem('absentStudents') || '[]');
+            savedAbsent.push(absentRecord);
+            localStorage.setItem('absentStudents', JSON.stringify(savedAbsent));
+            console.log('Absent student saved to localStorage:', absentRecord);
+          });
         }
         
         showMessage(`Attendance saved for ${student.firstName}`);
@@ -170,7 +201,6 @@ const App = () => {
       [day]: !lockedDays[day]
     };
     setLockedDays(newLockedDays);
-    // Save to localStorage
     localStorage.setItem('lockedDays', JSON.stringify(newLockedDays));
     
     showMessage(newLockedDays[day] ? `Day ${day} locked` : `Day ${day} unlocked`);
@@ -200,7 +230,7 @@ const App = () => {
   if (currentView === 'add') {
     return <AddStudent onBack={() => setCurrentView('main')} onStudentAdded={() => {
       // Reload from database
-      fetch('http://localhost:3001/students')
+      fetch(`${window.location.protocol}//${window.location.hostname}:3001/students`)
         .then(res => res.json())
         .then(data => setStudents(data))
         .catch(e => console.error("Could not reload students", e));
@@ -213,6 +243,10 @@ const App = () => {
 
   if (currentView === 'settings') {
     return <Settings onBack={() => setCurrentView('main')} />;
+  }
+
+  if (currentView === 'absent') {
+    return <AbsentStudents onBack={() => setCurrentView('main')} />;
   }
 
   // Show PIN login if not logged in
@@ -234,7 +268,7 @@ const App = () => {
               🥋
             </span>
             <h1 className="app-title">
-              Attendance App
+              Attendance
             </h1>
           </div>
           <div style={{display: 'flex', gap: '10px', alignItems: 'center'}}>
@@ -252,9 +286,15 @@ const App = () => {
             </button>
             <button
               onClick={() => setCurrentView('inactive')}
-              style={{padding: '8px 16px', backgroundColor: '#dc2626', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer'}}
+              style={{padding: '8px 16px', backgroundColor: '#dc2626', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', marginRight: '10px'}}
             >
               Stopped Students
+            </button>
+            <button
+              onClick={() => setCurrentView('absent')}
+              style={{padding: '8px 16px', backgroundColor: '#f59e0b', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer'}}
+            >
+              Absent Students
             </button>
             <div className="year-display">{selectedYear}</div>
             <button

@@ -20,7 +20,7 @@ const AttendanceView = ({ onBack }) => {
 
   // Load students from database
   useEffect(() => {
-    fetch('http://localhost:3001/students')
+    fetch(`${window.location.protocol}//${window.location.hostname}:3001/students`)
       .then(res => res.json())
       .then(data => setStudents(data))
       .catch(e => console.error("Could not load data", e));
@@ -164,7 +164,7 @@ const AttendanceView = ({ onBack }) => {
                   onClick={async () => {
                     if (window.confirm(`Mark ${selectedStudent.firstName} ${selectedStudent.lastName} as inactive?`)) {
                       try {
-                        await fetch(`http://localhost:3001/students/${selectedStudent.id}`, {
+                        await fetch(`${window.location.protocol}//${window.location.hostname}:3001/students/${selectedStudent.id}`, {
                           method: 'DELETE'
                         });
                         setStudents(prev => prev.filter(s => s.id !== selectedStudent.id));
@@ -256,7 +256,7 @@ const AttendanceView = ({ onBack }) => {
                           attendance: selectedStudent.attendance
                         };
                         
-                        const response = await fetch(`http://localhost:3001/students/${selectedStudent.id}`, {
+                        const response = await fetch(`${window.location.protocol}//${window.location.hostname}:3001/students/${selectedStudent.id}`, {
                           method: 'PUT',
                           headers: { 'Content-Type': 'application/json' },
                           body: JSON.stringify(updatedStudent)

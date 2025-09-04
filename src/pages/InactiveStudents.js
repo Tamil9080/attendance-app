@@ -5,7 +5,7 @@ const InactiveStudents = ({ onBack }) => {
 
   // Load inactive students
   useEffect(() => {
-    fetch('http://localhost:3001/inactive-students')
+    fetch(`${window.location.protocol}//${window.location.hostname}:3001/inactive-students`)
       .then(res => res.json())
       .then(data => setInactiveStudents(data))
       .catch(e => console.error("Could not load inactive students", e));
@@ -14,7 +14,7 @@ const InactiveStudents = ({ onBack }) => {
   const reactivateStudent = async (studentId, studentName) => {
     if (window.confirm(`Reactivate ${studentName}?`)) {
       try {
-        await fetch(`http://localhost:3001/reactivate/${studentId}`, {
+        await fetch(`${window.location.protocol}//${window.location.hostname}:3001/reactivate/${studentId}`, {
           method: 'POST'
         });
         
@@ -29,7 +29,7 @@ const InactiveStudents = ({ onBack }) => {
   const removeStudent = async (studentId, studentName) => {
     if (window.confirm(`Permanently delete ${studentName}? This cannot be undone.`)) {
       try {
-        const response = await fetch(`http://localhost:3001/inactive-students/${studentId}`, {
+        const response = await fetch(`${window.location.protocol}//${window.location.hostname}:3001/inactive-students/${studentId}`, {
           method: 'DELETE'
         });
         
@@ -40,8 +40,9 @@ const InactiveStudents = ({ onBack }) => {
           alert('Error: Could not delete student');
         }
       } catch (e) {
-        console.error('Error deleting student:', e);
-        alert('Error: Server not responding. Make sure server is running.');
+        // Fallback: remove from local state if server is not running
+        setInactiveStudents(prev => prev.filter(s => s.id !== studentId));
+        alert('Student removed from list (server not running)');
       }
     }
   };

@@ -37,7 +37,7 @@ const AddStudent = ({ onBack, onStudentAdded }) => {
     };
 
     try {
-      const response = await fetch('http://localhost:3001/students', {
+      const response = await fetch(`${window.location.protocol}//${window.location.hostname}:3001/students`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newStudent)

@@ -61,12 +61,31 @@ db.execute(`
   )
 `);
 
+db.execute(`
+  CREATE TABLE IF NOT EXISTS absent_students (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    student_id INT,
+    student_name VARCHAR(255),
+    phone_number VARCHAR(255),
+    absent_date DATE,
+    reason TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  )
+`);
+
 // Insert default admin user if not exists
 db.execute('SELECT COUNT(*) as count FROM users WHERE username = ?', ['admin'], (err, results) => {
   if (!err && results[0].count === 0) {
     db.execute('INSERT INTO users (username, password) VALUES (?, ?)', ['admin', 'admin123'], (err) => {
       if (!err) console.log('Default admin user created');
     });
+  }
+});
+
+// Add PIN column to users table
+db.execute('ALTER TABLE users ADD COLUMN pin VARCHAR(4) DEFAULT "1234"', (err) => {
+  if (err && !err.message.includes('Duplicate column')) {
+    console.error('Error adding pin column:', err);
   }
 });
 
@@ -276,6 +295,87 @@ app.delete('/inactive-students/:id', (req, res) => {
     }
     
     res.json({ message: 'Student permanently deleted' });
+  });
+});
+
+// Add absent student
+app.post('/absent-students', (req, res) => {
+  const { student_id, student_name, phone_number, absent_date } = req.body;
+  
+  db.execute(
+    'INSERT INTO absent_students (student_id, student_name, phone_number, absent_date) VALUES (?, ?, ?, ?)',
+    [student_id, student_name, phone_number, absent_date],
+    (err, results) => {
+      if (err) {
+        res.status(500).json({ error: err.message });
+        return;
+      }
+      res.json({ message: 'Absent student recorded' });
+    }
+  );
+});
+
+// Get absent students
+app.get('/absent-students', (req, res) => {
+  db.execute('SELECT * FROM absent_students ORDER BY absent_date DESC', (err, results) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    res.json(results);
+  });
+});
+
+// Update absent student reason
+app.put('/absent-students/:id', (req, res) => {
+  const { id } = req.params;
+  const { reason } = req.body;
+  
+  console.log('Updating reason for ID:', id, 'Reason:', reason);
+  
+  db.execute(
+    'UPDATE absent_students SET reason = ? WHERE id = ?',
+    [reason, id],
+    (err, results) => {
+      if (err) {
+        console.error('Update reason error:', err);
+        res.status(500).json({ error: err.message });
+        return;
+      }
+      
+      console.log('Update results:', results);
+      
+      if (results.affectedRows === 0) {
+        res.status(404).json({ error: 'Absent student not found' });
+        return;
+      }
+      
+      res.json({ message: 'Reason updated successfully', affectedRows: results.affectedRows });
+    }
+  );
+});
+
+// Get PIN
+app.get('/pin', (req, res) => {
+  db.execute('SELECT pin FROM users WHERE username = ?', ['admin'], (err, results) => {
+    if (err || results.length === 0) {
+      res.json({ pin: '1234' });
+      return;
+    }
+    res.json({ pin: results[0].pin });
+  });
+});
+
+// Update PIN
+app.put('/pin', (req, res) => {
+  const { pin } = req.body;
+  
+  db.execute('UPDATE users SET pin = ? WHERE username = ?', [pin, 'admin'], (err) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    res.json({ message: 'PIN updated successfully' });
   });
 });
 

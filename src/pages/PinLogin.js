@@ -15,14 +15,27 @@ const PinLogin = ({ onLogin }) => {
     setError('');
   };
 
-  const handleSubmit = () => {
-    const savedPin = localStorage.getItem('appPin') || '1234';
-    if (pin === savedPin) {
-      localStorage.setItem('isLoggedIn', 'true');
-      onLogin();
-    } else {
-      setError('Invalid PIN');
-      setPin('');
+  const handleSubmit = async () => {
+    try {
+      const response = await fetch(`${window.location.protocol}//${window.location.hostname}:3001/pin`);
+      const data = await response.json();
+      
+      if (pin === data.pin) {
+        localStorage.setItem('isLoggedIn', 'true');
+        onLogin();
+      } else {
+        setError('Invalid PIN');
+        setPin('');
+      }
+    } catch (e) {
+      // Fallback to default PIN if server not available
+      if (pin === '1234') {
+        localStorage.setItem('isLoggedIn', 'true');
+        onLogin();
+      } else {
+        setError('Invalid PIN (server offline)');
+        setPin('');
+      }
     }
   };
 
@@ -52,11 +65,11 @@ const PinLogin = ({ onLogin }) => {
     }}>
       <div style={{
         backgroundColor: 'white',
-        padding: '40px',
+        padding: '20px',
         borderRadius: '8px',
         boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
-        width: '100%',
-        maxWidth: '350px',
+        width: '95%',
+        maxWidth: '320px',
         textAlign: 'center'
       }}>
         <div style={{ marginBottom: '30px' }}>
@@ -96,7 +109,7 @@ const PinLogin = ({ onLogin }) => {
         <div style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(3, 1fr)',
-          gap: '15px',
+          gap: '10px',
           marginBottom: '20px'
         }}>
           {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(digit => (
@@ -104,8 +117,8 @@ const PinLogin = ({ onLogin }) => {
               key={digit}
               onClick={() => handlePinInput(digit.toString())}
               style={{
-                width: '60px',
-                height: '60px',
+                width: '70px',
+                height: '70px',
                 fontSize: '24px',
                 fontWeight: 'bold',
                 backgroundColor: '#f8f9fa',
@@ -120,8 +133,8 @@ const PinLogin = ({ onLogin }) => {
           <button
             onClick={handleClear}
             style={{
-              width: '60px',
-              height: '60px',
+              width: '70px',
+              height: '70px',
               fontSize: '16px',
               backgroundColor: '#dc2626',
               color: 'white',
@@ -135,8 +148,8 @@ const PinLogin = ({ onLogin }) => {
           <button
             onClick={() => handlePinInput('0')}
             style={{
-              width: '60px',
-              height: '60px',
+              width: '70px',
+              height: '70px',
               fontSize: '24px',
               fontWeight: 'bold',
               backgroundColor: '#f8f9fa',
@@ -151,8 +164,8 @@ const PinLogin = ({ onLogin }) => {
             onClick={handleSubmit}
             disabled={pin.length !== 4}
             style={{
-              width: '60px',
-              height: '60px',
+              width: '70px',
+              height: '70px',
               fontSize: '16px',
               backgroundColor: pin.length === 4 ? '#059669' : '#ccc',
               color: 'white',
@@ -172,8 +185,8 @@ const PinLogin = ({ onLogin }) => {
           fontSize: '14px',
           color: '#0369a1'
         }}>
-          <strong>Use keyboard or touch buttons</strong><br/>
-          To change PIN: Go to Settings after login
+          <strong>Default PIN: 1234</strong><br/>
+          Change PIN in Settings after login
         </div>
       </div>
     </div>

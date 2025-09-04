@@ -6,29 +6,45 @@ const Settings = ({ onBack }) => {
   const [confirmPin, setConfirmPin] = useState('');
   const [message, setMessage] = useState('');
 
-  const handleChangePIN = () => {
-    const savedPin = localStorage.getItem('appPin') || '1234';
-    
-    if (currentPin !== savedPin) {
-      setMessage('Current PIN is incorrect');
-      return;
+  const handleChangePIN = async () => {
+    try {
+      // Get current PIN from server
+      const response = await fetch(`${window.location.protocol}//${window.location.hostname}:3001/pin`);
+      const data = await response.json();
+      
+      if (currentPin !== data.pin) {
+        setMessage('Current PIN is incorrect');
+        return;
+      }
+      
+      if (newPin.length !== 4) {
+        setMessage('New PIN must be 4 digits');
+        return;
+      }
+      
+      if (newPin !== confirmPin) {
+        setMessage('New PIN and confirmation do not match');
+        return;
+      }
+      
+      // Update PIN on server
+      const updateResponse = await fetch(`${window.location.protocol}//${window.location.hostname}:3001/pin`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pin: newPin })
+      });
+      
+      if (!updateResponse.ok) {
+        throw new Error('Failed to update PIN');
+      }
+      
+      setMessage('PIN changed successfully!');
+      setCurrentPin('');
+      setNewPin('');
+      setConfirmPin('');
+    } catch (e) {
+      setMessage('Error: Server not available');
     }
-    
-    if (newPin.length !== 4) {
-      setMessage('New PIN must be 4 digits');
-      return;
-    }
-    
-    if (newPin !== confirmPin) {
-      setMessage('New PIN and confirmation do not match');
-      return;
-    }
-    
-    localStorage.setItem('appPin', newPin);
-    setMessage('PIN changed successfully!');
-    setCurrentPin('');
-    setNewPin('');
-    setConfirmPin('');
   };
 
   const handleLogout = () => {
