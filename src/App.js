@@ -39,6 +39,7 @@ const App = () => {
     }
   }, []);
   const [currentView, setCurrentView] = useState('main');
+  const [showMenu, setShowMenu] = useState(false);
 
   const monthNames = [
     'January', 'February', 'March', 'April', 'May', 'June',
@@ -66,11 +67,6 @@ const App = () => {
       setIsMessageVisible(false);
     }, 3000);
   };
-
-
-
-
-
 
 
   // Handle changing a student's attendance
@@ -110,28 +106,20 @@ const App = () => {
         // Save absent students when marked absent
         if (newStatus === false) {
           const absentRecord = {
-            id: Date.now(),
             student_id: studentId,
             student_name: `${student.firstName} ${student.lastName}`,
-            phone_number: student.phoneNumber,
+            phone_number: student.phoneNumber || '',
             absent_date: `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`,
             reason: ''
           };
           
-          // Try server first, fallback to localStorage
           fetch(`${window.location.protocol}//${window.location.hostname}:3001/absent-students`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(absentRecord)
           })
-          .then(response => response.json())
-          .then(data => console.log('Absent student saved to server:', data))
           .catch(e => {
-            // Fallback to localStorage
-            const savedAbsent = JSON.parse(localStorage.getItem('absentStudents') || '[]');
-            savedAbsent.push(absentRecord);
-            localStorage.setItem('absentStudents', JSON.stringify(savedAbsent));
-            console.log('Absent student saved to localStorage:', absentRecord);
+            console.error('Error saving absent student:', e);
           });
         }
         
@@ -267,43 +255,45 @@ const App = () => {
             <span className="karate-emoji" role="img" aria-label="karate">
               🥋
             </span>
-            <h1 className="app-title">
+            <h1 style={{fontSize: '24px', fontWeight: 'bold', color: 'black', margin: 0, backgroundColor: 'white', padding: '8px 16px', borderRadius: '8px'}}>
               Attendance
             </h1>
           </div>
-          <div style={{display: 'flex', gap: '10px', alignItems: 'center'}}>
-            <button
-              onClick={() => setCurrentView('add')}
-              style={{padding: '8px 16px', backgroundColor: '#059669', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', marginRight: '10px'}}
-            >
-              Add Student
-            </button>
-            <button
-              onClick={() => setCurrentView('view')}
-              style={{padding: '8px 16px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', marginRight: '10px'}}
-            >
-              View Attendance
-            </button>
-            <button
-              onClick={() => setCurrentView('inactive')}
-              style={{padding: '8px 16px', backgroundColor: '#dc2626', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', marginRight: '10px'}}
-            >
-              Stopped Students
-            </button>
-            <button
-              onClick={() => setCurrentView('absent')}
-              style={{padding: '8px 16px', backgroundColor: '#f59e0b', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer'}}
-            >
-              Absent Students
-            </button>
+          <div style={{display: 'flex', alignItems: 'center', gap: '10px'}}>
             <div className="year-display">{selectedYear}</div>
             <button
-              onClick={() => setCurrentView('settings')}
-              style={{padding: '8px 16px', backgroundColor: '#6b7280', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer'}}
+              onClick={() => setShowMenu(!showMenu)}
+              style={{padding: '8px 12px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '16px'}}
             >
-              Settings
+              ☰
             </button>
           </div>
+          
+          {showMenu && (
+            <>
+              <div 
+                style={{position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.3)', zIndex: 40}}
+                onClick={() => setShowMenu(false)}
+              />
+              <div style={{position: 'absolute', top: '80px', right: '20px', backgroundColor: 'white', border: '1px solid #ddd', borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.15)', zIndex: 50, minWidth: '200px', animation: 'slideDown 0.3s ease', transformOrigin: 'top right'}}>
+                <button style={{width: '100%', textAlign: 'left', padding: '12px 16px', border: 'none', backgroundColor: 'transparent', color: '#333', cursor: 'pointer'}} onClick={() => {setCurrentView('add'); setShowMenu(false);}}>
+                  👤 Add Student
+                </button>
+                <button style={{width: '100%', textAlign: 'left', padding: '12px 16px', border: 'none', backgroundColor: 'transparent', color: '#333', cursor: 'pointer'}} onClick={() => {setCurrentView('view'); setShowMenu(false);}}>
+                  📊 View Attendance
+                </button>
+                <button style={{width: '100%', textAlign: 'left', padding: '12px 16px', border: 'none', backgroundColor: 'transparent', color: '#333', cursor: 'pointer'}} onClick={() => {setCurrentView('inactive'); setShowMenu(false);}}>
+                  ⏸️ Stopped Students
+                </button>
+                <button style={{width: '100%', textAlign: 'left', padding: '12px 16px', border: 'none', backgroundColor: 'transparent', color: '#333', cursor: 'pointer'}} onClick={() => {setCurrentView('absent'); setShowMenu(false);}}>
+                  ❌ Absent Students
+                </button>
+                <button style={{width: '100%', textAlign: 'left', padding: '12px 16px', border: 'none', backgroundColor: 'transparent', color: '#333', cursor: 'pointer'}} onClick={() => {setCurrentView('settings'); setShowMenu(false);}}>
+                  ⚙️ Settings
+                </button>
+              </div>
+            </>
+          )}
         </header>
 
         <section className="selection-section">

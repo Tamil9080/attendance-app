@@ -53,52 +53,55 @@ const Settings = ({ onBack }) => {
   };
 
   return (
-    <div style={{padding: '20px', fontFamily: 'Arial, sans-serif'}}>
-      <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px'}}>
+    <div className="settings-container" style={{padding: '20px', fontFamily: 'Arial, sans-serif', backgroundColor: '#1a1a1a', color: '#ffffff', minHeight: '100vh'}}>
+      <div className="settings-header" style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px'}}>
         <button
           onClick={onBack}
-          style={{padding: '8px 16px', backgroundColor: '#6b7280', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer'}}
+          style={{padding: '8px 16px', background: 'linear-gradient(135deg, #6b7280 0%, #4a4845 100%)', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer'}}
         >
           Back to Main
         </button>
-        <h1 style={{margin: 0}}>Settings</h1>
+        <h1 style={{margin: 0, color: '#ffffff'}}>Settings</h1>
         <div></div>
       </div>
 
-      <div style={{maxWidth: '400px', margin: '0 auto'}}>
-        <div style={{backgroundColor: 'white', padding: '30px', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)', marginBottom: '20px'}}>
-          <h2 style={{marginTop: 0}}>Change PIN</h2>
+      <div className="settings-form-container" style={{maxWidth: '400px', margin: '0 auto', padding: '0 20px'}}>
+        <div className="settings-card" style={{backgroundColor: '#2d2d2d', padding: '30px', borderRadius: '8px', border: '1px solid #404040', marginBottom: '20px'}}>
+          <h2 className="settings-title" style={{marginTop: 0, color: '#ffffff'}}>Change PIN</h2>
           
-          <div style={{marginBottom: '15px'}}>
-            <label style={{display: 'block', marginBottom: '5px', fontWeight: 'bold'}}>Current PIN:</label>
+          <div className="settings-input-group" style={{marginBottom: '15px'}}>
+            <label className="settings-label" style={{display: 'block', marginBottom: '5px', fontWeight: 'bold'}}>Current PIN:</label>
             <input
               type="password"
               value={currentPin}
               onChange={(e) => setCurrentPin(e.target.value)}
               maxLength="4"
-              style={{width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '4px'}}
+              className="settings-input"
+              style={{width: '100%', padding: '10px', border: '2px solid #404040', borderRadius: '4px', backgroundColor: '#1a1a1a', color: '#ffffff'}}
             />
           </div>
 
-          <div style={{marginBottom: '15px'}}>
-            <label style={{display: 'block', marginBottom: '5px', fontWeight: 'bold'}}>New PIN:</label>
+          <div className="settings-input-group" style={{marginBottom: '15px'}}>
+            <label className="settings-label" style={{display: 'block', marginBottom: '5px', fontWeight: 'bold'}}>New PIN:</label>
             <input
               type="password"
               value={newPin}
               onChange={(e) => setNewPin(e.target.value)}
               maxLength="4"
-              style={{width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '4px'}}
+              className="settings-input"
+              style={{width: '100%', padding: '10px', border: '2px solid #404040', borderRadius: '4px', backgroundColor: '#1a1a1a', color: '#ffffff'}}
             />
           </div>
 
-          <div style={{marginBottom: '15px'}}>
-            <label style={{display: 'block', marginBottom: '5px', fontWeight: 'bold'}}>Confirm New PIN:</label>
+          <div className="settings-input-group" style={{marginBottom: '15px'}}>
+            <label className="settings-label" style={{display: 'block', marginBottom: '5px', fontWeight: 'bold'}}>Confirm New PIN:</label>
             <input
               type="password"
               value={confirmPin}
               onChange={(e) => setConfirmPin(e.target.value)}
               maxLength="4"
-              style={{width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '4px'}}
+              className="settings-input"
+              style={{width: '100%', padding: '10px', border: '2px solid #404040', borderRadius: '4px', backgroundColor: '#1a1a1a', color: '#ffffff'}}
             />
           </div>
 
@@ -107,8 +110,9 @@ const Settings = ({ onBack }) => {
               padding: '10px',
               borderRadius: '4px',
               marginBottom: '15px',
-              backgroundColor: message.includes('successfully') ? '#d1fae5' : '#fee2e2',
-              color: message.includes('successfully') ? '#065f46' : '#dc2626'
+              backgroundColor: message.includes('successfully') ? '#1b2d1b' : '#2d1b1b',
+              color: message.includes('successfully') ? '#28a745' : '#dc3545',
+              border: '1px solid #404040'
             }}>
               {message}
             </div>
@@ -116,10 +120,11 @@ const Settings = ({ onBack }) => {
 
           <button
             onClick={handleChangePIN}
+            className="settings-button"
             style={{
               width: '100%',
               padding: '12px',
-              backgroundColor: '#059669',
+              background: 'linear-gradient(135deg, #28a745 0%, #20c997 100%)',
               color: 'white',
               border: 'none',
               borderRadius: '4px',
@@ -131,14 +136,15 @@ const Settings = ({ onBack }) => {
           </button>
         </div>
 
-        <div style={{backgroundColor: 'white', padding: '30px', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)'}}>
-          <h2 style={{marginTop: 0}}>Account</h2>
+        <div className="settings-card" style={{backgroundColor: '#2d2d2d', padding: '30px', borderRadius: '8px', border: '1px solid #404040'}}>
+          <h2 className="settings-title" style={{marginTop: 0, color: '#ffffff'}}>Account</h2>
           <button
             onClick={handleLogout}
+            className="settings-button"
             style={{
               width: '100%',
               padding: '12px',
-              backgroundColor: '#dc2626',
+              background: 'linear-gradient(135deg, #dc3545 0%, #a71d2a 100%)',
               color: 'white',
               border: 'none',
               borderRadius: '4px',
@@ -153,5 +159,44 @@ const Settings = ({ onBack }) => {
     </div>
   );
 };
+
+/* Mobile responsiveness */
+const mobileStyles = `
+  @media (max-width: 768px) {
+    .settings-container {
+      padding: 10px !important;
+    }
+    .settings-header {
+      flex-direction: column !important;
+      text-align: center !important;
+      gap: 10px !important;
+    }
+    .settings-title {
+      font-size: 18px !important;
+    }
+    .settings-form-container {
+      padding: 0 10px !important;
+    }
+    .settings-card {
+      padding: 20px !important;
+    }
+    .settings-input {
+      padding: 8px !important;
+      font-size: 16px !important;
+    }
+    .settings-button {
+      padding: 10px !important;
+      font-size: 14px !important;
+    }
+  }
+`;
+
+// Inject mobile styles
+if (typeof document !== 'undefined') {
+  const styleSheet = document.createElement('style');
+  styleSheet.type = 'text/css';
+  styleSheet.innerText = mobileStyles;
+  document.head.appendChild(styleSheet);
+}
 
 export default Settings;

@@ -61,21 +61,22 @@ const PinLogin = ({ onLogin }) => {
       justifyContent: 'center',
       alignItems: 'center',
       minHeight: '100vh',
-      backgroundColor: '#f5f5f5'
+      backgroundColor: '#1a1a1a'
     }}>
       <div style={{
-        backgroundColor: 'white',
+        backgroundColor: '#2d2d2d',
         padding: '20px',
         borderRadius: '8px',
-        boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+        boxShadow: '0 4px 6px rgba(0, 0, 0, 0.3)',
         width: '95%',
         maxWidth: '320px',
-        textAlign: 'center'
+        textAlign: 'center',
+        border: '1px solid #404040'
       }}>
         <div style={{ marginBottom: '30px' }}>
-          <span style={{ fontSize: '48px' }}>🥋</span>
-          <h1 style={{ margin: '10px 0', color: '#991b1b' }}>Attendance App</h1>
-          <p style={{ color: '#666', margin: 0 }}>Enter PIN to continue</p>
+          <span style={{ fontSize: '48px' }}>📅</span>
+          <h1 style={{ margin: '10px 0', color: '#007bff' }}>Attendance App</h1>
+          <p style={{ color: '#cccccc', margin: 0 }}>Enter PIN to continue</p>
         </div>
 
         <div style={{
@@ -89,18 +90,19 @@ const PinLogin = ({ onLogin }) => {
               width: '20px',
               height: '20px',
               borderRadius: '50%',
-              backgroundColor: i < pin.length ? '#991b1b' : '#ddd'
+              backgroundColor: i < pin.length ? '#007bff' : '#404040'
             }} />
           ))}
         </div>
 
         {error && (
           <div style={{
-            backgroundColor: '#fee2e2',
-            color: '#dc2626',
+            backgroundColor: '#2d1b1b',
+            color: '#dc3545',
             padding: '10px',
             borderRadius: '4px',
-            marginBottom: '20px'
+            marginBottom: '20px',
+            border: '1px solid #dc3545'
           }}>
             {error}
           </div>
@@ -121,10 +123,12 @@ const PinLogin = ({ onLogin }) => {
                 height: '70px',
                 fontSize: '24px',
                 fontWeight: 'bold',
-                backgroundColor: '#f8f9fa',
-                border: '2px solid #ddd',
+                backgroundColor: '#2d2d2d',
+                color: '#ffffff',
+                border: '2px solid #404040',
                 borderRadius: '8px',
-                cursor: 'pointer'
+                cursor: 'pointer',
+                transition: 'background-color 0.3s ease'
               }}
             >
               {digit}
@@ -136,7 +140,7 @@ const PinLogin = ({ onLogin }) => {
               width: '70px',
               height: '70px',
               fontSize: '16px',
-              backgroundColor: '#dc2626',
+              background: 'linear-gradient(135deg, #dc3545 0%, #a71d2a 100%)',
               color: 'white',
               border: 'none',
               borderRadius: '8px',
@@ -152,10 +156,12 @@ const PinLogin = ({ onLogin }) => {
               height: '70px',
               fontSize: '24px',
               fontWeight: 'bold',
-              backgroundColor: '#f8f9fa',
-              border: '2px solid #ddd',
+              backgroundColor: '#2d2d2d',
+              color: '#ffffff',
+              border: '2px solid #404040',
               borderRadius: '8px',
-              cursor: 'pointer'
+              cursor: 'pointer',
+              transition: 'background-color 0.3s ease'
             }}
           >
             0
@@ -167,7 +173,7 @@ const PinLogin = ({ onLogin }) => {
               width: '70px',
               height: '70px',
               fontSize: '16px',
-              backgroundColor: pin.length === 4 ? '#059669' : '#ccc',
+              background: pin.length === 4 ? 'linear-gradient(135deg, #28a745 0%, #20c997 100%)' : '#404040',
               color: 'white',
               border: 'none',
               borderRadius: '8px',
@@ -176,17 +182,6 @@ const PinLogin = ({ onLogin }) => {
           >
             Enter
           </button>
-        </div>
-
-        <div style={{
-          padding: '15px',
-          backgroundColor: '#f0f9ff',
-          borderRadius: '4px',
-          fontSize: '14px',
-          color: '#0369a1'
-        }}>
-          <strong>Default PIN: 1234</strong><br/>
-          Change PIN in Settings after login
         </div>
       </div>
     </div>

@@ -71,7 +71,13 @@ db.execute(`
     reason TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
   )
-`);
+`, (err) => {
+  if (err) {
+    console.error('Error creating absent_students table:', err);
+  } else {
+    console.log('absent_students table ready');
+  }
+});
 
 // Insert default admin user if not exists
 db.execute('SELECT COUNT(*) as count FROM users WHERE username = ?', ['admin'], (err, results) => {
@@ -302,15 +308,33 @@ app.delete('/inactive-students/:id', (req, res) => {
 app.post('/absent-students', (req, res) => {
   const { student_id, student_name, phone_number, absent_date } = req.body;
   
+  // Check if already exists
   db.execute(
-    'INSERT INTO absent_students (student_id, student_name, phone_number, absent_date) VALUES (?, ?, ?, ?)',
-    [student_id, student_name, phone_number, absent_date],
+    'SELECT COUNT(*) as count FROM absent_students WHERE student_id = ? AND absent_date = ?',
+    [student_id, absent_date],
     (err, results) => {
       if (err) {
         res.status(500).json({ error: err.message });
         return;
       }
-      res.json({ message: 'Absent student recorded' });
+      
+      if (results[0].count > 0) {
+        res.json({ message: 'Student already marked absent for this date' });
+        return;
+      }
+      
+      // Insert new record
+      db.execute(
+        'INSERT INTO absent_students (student_id, student_name, phone_number, absent_date) VALUES (?, ?, ?, ?)',
+        [student_id, student_name, phone_number, absent_date],
+        (err, results) => {
+          if (err) {
+            res.status(500).json({ error: err.message });
+            return;
+          }
+          res.json({ message: 'Absent student recorded' });
+        }
+      );
     }
   );
 });
@@ -319,10 +343,12 @@ app.post('/absent-students', (req, res) => {
 app.get('/absent-students', (req, res) => {
   db.execute('SELECT * FROM absent_students ORDER BY absent_date DESC', (err, results) => {
     if (err) {
+      console.error('Database error:', err);
       res.status(500).json({ error: err.message });
       return;
     }
-    res.json(results);
+    console.log('Fetched absent students:', results.length);
+    res.json(results || []);
   });
 });
 
@@ -351,6 +377,28 @@ app.put('/absent-students/:id', (req, res) => {
       }
       
       res.json({ message: 'Reason updated successfully', affectedRows: results.affectedRows });
+    }
+  );
+});
+
+// Delete absent student record
+app.delete('/absent-students/:id', (req, res) => {
+  const { id } = req.params;
+  
+  console.log('Deleting absent student with ID:', id);
+  
+  db.execute(
+    'DELETE FROM absent_students WHERE id = ?',
+    [id],
+    (err, results) => {
+      if (err) {
+        console.error('Delete error:', err);
+        res.status(500).json({ error: err.message });
+        return;
+      }
+      
+      console.log('Delete results:', results.affectedRows);
+      res.json({ message: 'Student removed from absent list', deleted: results.affectedRows > 0 });
     }
   );
 });

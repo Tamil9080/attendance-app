@@ -9,6 +9,7 @@ const AddStudent = ({ onBack, onStudentAdded }) => {
   const [address, setAddress] = useState('');
   const [message, setMessage] = useState('');
   const [isMessageVisible, setIsMessageVisible] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
 
   const showMessage = (text) => {
     setMessage(text);
@@ -78,8 +79,29 @@ const AddStudent = ({ onBack, onStudentAdded }) => {
           Back to Main
         </button>
         <h1 style={{margin: 0}}>Add New Student</h1>
-        <div></div>
+        <button
+          onClick={() => setShowMenu(!showMenu)}
+          style={{padding: '8px 12px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '16px'}}
+        >
+          ☰
+        </button>
       </div>
+      
+      {showMenu && (
+        <>
+          <div 
+            style={{position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.3)', zIndex: 40}}
+            onClick={() => setShowMenu(false)}
+          />
+          <div style={{position: 'fixed', top: '80px', right: '20px', backgroundColor: 'white', border: '1px solid #ddd', borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.15)', zIndex: 50, minWidth: '200px'}}>
+            <button style={{width: '100%', textAlign: 'left', padding: '12px 16px', border: 'none', backgroundColor: 'transparent', color: '#333', cursor: 'pointer'}} onClick={() => {window.location.href = '/'; setShowMenu(false);}}>Main Page</button>
+            <button style={{width: '100%', textAlign: 'left', padding: '12px 16px', border: 'none', backgroundColor: 'transparent', color: '#333', cursor: 'pointer'}} onClick={() => {window.location.href = '/view'; setShowMenu(false);}}>View Attendance</button>
+            <button style={{width: '100%', textAlign: 'left', padding: '12px 16px', border: 'none', backgroundColor: 'transparent', color: '#333', cursor: 'pointer'}} onClick={() => {window.location.href = '/inactive'; setShowMenu(false);}}>Stopped Students</button>
+            <button style={{width: '100%', textAlign: 'left', padding: '12px 16px', border: 'none', backgroundColor: 'transparent', color: '#333', cursor: 'pointer'}} onClick={() => {window.location.href = '/absent'; setShowMenu(false);}}>Absent Students</button>
+            <button style={{width: '100%', textAlign: 'left', padding: '12px 16px', border: 'none', backgroundColor: 'transparent', color: '#333', cursor: 'pointer'}} onClick={() => {window.location.href = '/settings'; setShowMenu(false);}}>Settings</button>
+          </div>
+        </>
+      )}
 
       <form onSubmit={handleSubmit} style={{display: 'flex', flexDirection: 'column', gap: '20px'}}>
         <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px'}}>
@@ -111,8 +133,15 @@ const AddStudent = ({ onBack, onStudentAdded }) => {
             <label style={{display: 'block', marginBottom: '5px', fontWeight: 'bold'}}>Phone Number</label>
             <input
               type="tel"
+              placeholder="10-digit mobile number"
               value={phoneNumber}
-              onChange={(e) => setPhoneNumber(e.target.value)}
+              onChange={(e) => {
+                const value = e.target.value.replace(/[^0-9]/g, '');
+                if (value.length <= 10) {
+                  setPhoneNumber(value);
+                }
+              }}
+              maxLength="10"
               style={{width: '100%', padding: '10px', border: '2px solid #ddd', borderRadius: '4px', fontSize: '14px'}}
             />
           </div>

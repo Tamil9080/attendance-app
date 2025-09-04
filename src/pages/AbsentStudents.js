@@ -8,18 +8,25 @@ const AbsentStudents = ({ onBack }) => {
   useEffect(() => {
     fetch(`${window.location.protocol}//${window.location.hostname}:3001/absent-students`)
       .then(res => res.json())
-      .then(data => setAbsentStudents(data))
+      .then(data => {
+        setAbsentStudents(Array.isArray(data) ? data : []);
+      })
       .catch(e => {
-        // Fallback to localStorage
-        const savedAbsent = JSON.parse(localStorage.getItem('absentStudents') || '[]');
-        setAbsentStudents(savedAbsent);
-        console.log('Loaded absent students from localStorage:', savedAbsent);
+        console.error('Error loading absent students:', e);
+        setAbsentStudents([]);
       });
   }, []);
 
   const sendWhatsAppMessage = (student) => {
     const message = `Hi ${student.student_name}, you were marked absent on ${student.absent_date}. Please let us know why you couldn't attend. Thank you!`;
-    const whatsappUrl = `https://wa.me/${student.phone_number.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(message)}`;
+    let phoneNumber = student.phone_number.replace(/[^0-9]/g, '');
+    
+    // Add +91 if not present and number is 10 digits
+    if (phoneNumber.length === 10 && !phoneNumber.startsWith('91')) {
+      phoneNumber = '91' + phoneNumber;
+    }
+    
+    const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
     window.open(whatsappUrl, '_blank');
   };
 
@@ -43,15 +50,6 @@ const AbsentStudents = ({ onBack }) => {
       }
     } catch (e) {
       console.error('Error saving reason:', e);
-      // Fallback to localStorage
-      const savedAbsent = JSON.parse(localStorage.getItem('absentStudents') || '[]');
-      const updatedAbsent = savedAbsent.map(s => 
-        s.id === id ? { ...s, reason } : s
-      );
-      localStorage.setItem('absentStudents', JSON.stringify(updatedAbsent));
-      setAbsentStudents(updatedAbsent);
-      setEditingId(null);
-      setReason('');
     }
   };
 
@@ -68,7 +66,7 @@ const AbsentStudents = ({ onBack }) => {
         <div></div>
       </div>
 
-      {absentStudents.length === 0 ? (
+      {!Array.isArray(absentStudents) || absentStudents.length === 0 ? (
         <p style={{textAlign: 'center', fontSize: '18px', color: '#666'}}>
           No absent students found.
         </p>
@@ -84,7 +82,7 @@ const AbsentStudents = ({ onBack }) => {
             </tr>
           </thead>
           <tbody>
-            {absentStudents.map((student) => (
+            {Array.isArray(absentStudents) && absentStudents.map((student) => (
               <tr key={student.id}>
                 <td style={{padding: '12px', border: '1px solid #ddd'}}>
                   {student.student_name}
@@ -140,6 +138,32 @@ const AbsentStudents = ({ onBack }) => {
                         Edit Reason
                       </button>
                     )}
+                    <button
+                      onClick={async () => {
+                        if (window.confirm('Remove this student from absent list?')) {
+                          try {
+                            const response = await fetch(`${window.location.protocol}//${window.location.hostname}:3001/absent-students/${student.id}`, {
+                              method: 'DELETE'
+                            });
+                            console.log('Delete response status:', response.status);
+                            const result = await response.json();
+                            console.log('Delete response:', result);
+                            
+                            if (response.ok) {
+                              setAbsentStudents(prev => prev.filter(s => s.id !== student.id));
+                              console.log('Student deleted successfully');
+                            } else {
+                              console.error('Delete failed:', response.status, result);
+                            }
+                          } catch (e) {
+                            console.error('Error deleting:', e);
+                          }
+                        }
+                      }}
+                      style={{padding: '6px 12px', backgroundColor: '#dc2626', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer'}}
+                    >
+                      Delete
+                    </button>
                   </div>
                 </td>
               </tr>
