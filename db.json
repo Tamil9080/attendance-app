@@ -1,0 +1,40 @@
+{
+  "students": [
+    {
+      "id": "1",
+      "firstName": "tharun",
+      "lastName": "",
+      "phoneNumber": "10789",
+      "attendance": {
+        "September-2025": {
+          "7": true,
+          "14": true
+        }
+      }
+    },
+    {
+      "id": "1756717284708",
+      "firstName": "TAMILSELVAN",
+      "lastName": "B S",
+      "phoneNumber": "09080110710",
+      "attendance": {
+        "September-2025": {
+          "7": true,
+          "14": true
+        }
+      }
+    },
+    {
+      "id": "1756717313302",
+      "firstName": "Santhosh",
+      "lastName": "s",
+      "phoneNumber": "7603959940",
+      "attendance": {
+        "September-2025": {
+          "7": true,
+          "14": true
+        }
+      }
+    }
+  ]
+}
