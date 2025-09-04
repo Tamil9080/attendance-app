@@ -260,6 +260,25 @@ app.post('/reactivate/:id', (req, res) => {
   });
 });
 
+// Delete inactive student permanently
+app.delete('/inactive-students/:id', (req, res) => {
+  const { id } = req.params;
+  
+  db.execute('DELETE FROM inactive_students WHERE id = ?', [id], (err, results) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    
+    if (results.affectedRows === 0) {
+      res.status(404).json({ error: 'Inactive student not found' });
+      return;
+    }
+    
+    res.json({ message: 'Student permanently deleted' });
+  });
+});
+
 app.listen(3001, '0.0.0.0', () => {
   console.log('Server running on port 3001');
   console.log('Web app runs on: http://192.168.1.36:3000');

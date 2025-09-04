@@ -18,12 +18,30 @@ const InactiveStudents = ({ onBack }) => {
           method: 'POST'
         });
         
-        // Remove from inactive list
         setInactiveStudents(prev => prev.filter(s => s.id !== studentId));
-        
         alert('Student reactivated successfully!');
       } catch (e) {
         console.error('Error reactivating student:', e);
+      }
+    }
+  };
+
+  const removeStudent = async (studentId, studentName) => {
+    if (window.confirm(`Permanently delete ${studentName}? This cannot be undone.`)) {
+      try {
+        const response = await fetch(`http://localhost:3001/inactive-students/${studentId}`, {
+          method: 'DELETE'
+        });
+        
+        if (response.ok) {
+          setInactiveStudents(prev => prev.filter(s => s.id !== studentId));
+          alert('Student permanently deleted!');
+        } else {
+          alert('Error: Could not delete student');
+        }
+      } catch (e) {
+        console.error('Error deleting student:', e);
+        alert('Error: Server not responding. Make sure server is running.');
       }
     }
   };
@@ -68,12 +86,20 @@ const InactiveStudents = ({ onBack }) => {
                   {student.gender || 'N/A'}
                 </td>
                 <td style={{padding: '12px', border: '1px solid #ddd', textAlign: 'center'}}>
-                  <button
-                    onClick={() => reactivateStudent(student.id, `${student.firstName} ${student.lastName}`)}
-                    style={{padding: '6px 12px', backgroundColor: '#059669', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer'}}
-                  >
-                    Reactivate
-                  </button>
+                  <div style={{display: 'flex', gap: '5px', justifyContent: 'center'}}>
+                    <button
+                      onClick={() => reactivateStudent(student.id, `${student.firstName} ${student.lastName}`)}
+                      style={{padding: '6px 12px', backgroundColor: '#059669', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer'}}
+                    >
+                      Reactivate
+                    </button>
+                    <button
+                      onClick={() => removeStudent(student.id, `${student.firstName} ${student.lastName}`)}
+                      style={{padding: '6px 12px', backgroundColor: '#dc2626', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer'}}
+                    >
+                      Delete
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}
