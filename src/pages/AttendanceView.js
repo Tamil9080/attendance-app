@@ -201,7 +201,35 @@ const AttendanceView = ({ onBack }) => {
             <tr key={student.id}>
               <td style={{padding: '10px', border: '1px solid #404040', color: '#ffffff'}}>
                 <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between'}}>
-                  <span>{student.firstName} {student.lastName}</span>
+                  <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
+                    <select
+                      value={student.beltColor || 'white'}
+                      onChange={(e) => {
+                        const updatedStudent = {...student, beltColor: e.target.value};
+                        fetch(`${window.location.protocol}//${window.location.hostname}:3001/students/${student.id}`, {
+                          method: 'PUT',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify(updatedStudent)
+                        })
+                        .then(() => {
+                          setStudents(prev => prev.map(s => s.id === student.id ? updatedStudent : s));
+                        })
+                        .catch(e => {
+                          console.error('Error updating belt color:', e);
+                        });
+                      }}
+                      style={{width: '60px', fontSize: '10px', padding: '2px', backgroundColor: '#1a1a1a', color: 'white', border: '1px solid #404040'}}
+                    >
+                      <option value="white">⚪</option>
+                      <option value="yellow">🟡</option>
+                      <option value="orange">🟠</option>
+                      <option value="green">🟢</option>
+                      <option value="blue">🔵</option>
+                      <option value="brown">🟤</option>
+                      <option value="black">⚫</option>
+                    </select>
+                    <span>{student.firstName} {student.lastName}</span>
+                  </div>
                   <button
                     onClick={() => setSelectedStudent(student)}
                     style={{padding: '4px 8px', background: 'linear-gradient(135deg, #007bff 0%, #0056b3 100%)', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px'}}

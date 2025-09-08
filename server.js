@@ -116,6 +116,11 @@ db.execute(`ALTER TABLE students ADD COLUMN status VARCHAR(20) DEFAULT 'active'`
     console.error('Error adding status column:', err);
   }
 });
+db.execute(`ALTER TABLE students ADD COLUMN beltColor VARCHAR(20) DEFAULT 'white'`, (err) => {
+  if (err && !err.message.includes('Duplicate column')) {
+    console.error('Error adding beltColor column:', err);
+  }
+});
 
 // Get all students
 app.get('/students', (req, res) => {
@@ -134,7 +139,8 @@ app.get('/students', (req, res) => {
       attendance: typeof student.attendance === 'string' ? JSON.parse(student.attendance) : student.attendance,
       gender: student.gender || null,
       fatherName: student.fatherName || null,
-      address: student.address || null
+      address: student.address || null,
+      beltColor: student.beltColor || 'white'
     }));
     res.json(students);
   });
@@ -142,16 +148,16 @@ app.get('/students', (req, res) => {
 
 // Add new student
 app.post('/students', (req, res) => {
-  const { firstName, lastName, phoneNumber, gender, fatherName, address, attendance } = req.body;
+  const { firstName, lastName, phoneNumber, gender, fatherName, address, beltColor, attendance } = req.body;
   db.execute(
-    'INSERT INTO students (firstName, lastName, phoneNumber, gender, fatherName, address, attendance, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-    [firstName, lastName, phoneNumber, gender, fatherName, address, JSON.stringify(attendance), 'active'],
+    'INSERT INTO students (firstName, lastName, phoneNumber, gender, fatherName, address, beltColor, attendance, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+    [firstName, lastName, phoneNumber, gender, fatherName, address, beltColor || 'white', JSON.stringify(attendance), 'active'],
     (err, results) => {
       if (err) {
         res.status(500).json({ error: err.message });
         return;
       }
-      res.json({ id: results.insertId, firstName, lastName, phoneNumber, gender, fatherName, address, attendance });
+      res.json({ id: results.insertId, firstName, lastName, phoneNumber, gender, fatherName, address, beltColor, attendance });
     }
   );
 });
@@ -159,12 +165,12 @@ app.post('/students', (req, res) => {
 // Update student
 app.put('/students/:id', (req, res) => {
   const { id } = req.params;
-  const { firstName, lastName, phoneNumber, gender, fatherName, address, attendance, status } = req.body;
-  console.log('Updating student:', id, { firstName, lastName, phoneNumber, gender, fatherName, address, attendance, status });
+  const { firstName, lastName, phoneNumber, gender, fatherName, address, beltColor, attendance, status } = req.body;
+  console.log('Updating student:', id, { firstName, lastName, phoneNumber, gender, fatherName, address, beltColor, attendance, status });
   
   db.execute(
-    'UPDATE students SET firstName = ?, lastName = ?, phoneNumber = ?, gender = ?, fatherName = ?, address = ?, attendance = ?, status = ? WHERE id = ?',
-    [firstName, lastName, phoneNumber || null, gender || null, fatherName || null, address || null, JSON.stringify(attendance || {}), status || 'active', id],
+    'UPDATE students SET firstName = ?, lastName = ?, phoneNumber = ?, gender = ?, fatherName = ?, address = ?, beltColor = ?, attendance = ?, status = ? WHERE id = ?',
+    [firstName, lastName, phoneNumber || null, gender || null, fatherName || null, address || null, beltColor || 'white', JSON.stringify(attendance || {}), status || 'active', id],
     (err, results) => {
       if (err) {
         console.error('Update error:', err);
@@ -176,7 +182,7 @@ app.put('/students/:id', (req, res) => {
         res.status(404).json({ error: 'Student not found' });
         return;
       }
-      res.json({ id, firstName, lastName, phoneNumber, gender, fatherName, address, attendance, status });
+      res.json({ id, firstName, lastName, phoneNumber, gender, fatherName, address, beltColor, attendance, status });
     }
   );
 });

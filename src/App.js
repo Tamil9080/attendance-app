@@ -40,6 +40,9 @@ const App = () => {
   }, []);
   const [currentView, setCurrentView] = useState('main');
   const [showMenu, setShowMenu] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedStudents, setSelectedStudents] = useState([]);
 
   const monthNames = [
     'January', 'February', 'March', 'April', 'May', 'June',
@@ -59,14 +62,39 @@ const App = () => {
       });
   }, []);
 
-  // Helper function to show a message
-  const showMessage = (text) => {
-    setMessage(text);
+  // Enhanced message system
+  const showMessage = (text, type = 'success') => {
+    setMessage({ text, type });
     setIsMessageVisible(true);
     setTimeout(() => {
       setIsMessageVisible(false);
-    }, 3000);
+    }, 4000);
   };
+
+  // Bulk attendance operations
+  const handleBulkAttendance = async (status) => {
+    if (selectedStudents.length === 0) {
+      showMessage('Please select students first', 'error');
+      return;
+    }
+    
+    setLoading(true);
+    const promises = selectedStudents.map(studentId => 
+      getSundaysInMonth().map(day => 
+        handleAttendanceChange(studentId, day, status)
+      )
+    ).flat();
+    
+    await Promise.all(promises);
+    setSelectedStudents([]);
+    setLoading(false);
+    showMessage(`Marked ${selectedStudents.length} students as ${status ? 'present' : 'absent'}`);
+  };
+
+  // Filter students based on search
+  const filteredStudents = students.filter(student => 
+    `${student.firstName} ${student.lastName}`.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
 
   // Handle changing a student's attendance
@@ -246,8 +274,8 @@ const App = () => {
     <div className="app-container">
       <div className="app-content">
         {isMessageVisible && (
-          <div className="message-box">
-            {message}
+          <div className={`toast ${message.type === 'error' ? 'error' : ''}`}>
+            {message.type === 'success' ? '✅' : '❌'} {message.text}
           </div>
         )}
         <header className="app-header">
@@ -255,81 +283,138 @@ const App = () => {
             <span className="karate-emoji" role="img" aria-label="karate">
               🥋
             </span>
-            <h1 style={{fontSize: '24px', fontWeight: 'bold', color: 'black', margin: 0, backgroundColor: 'white', padding: '8px 16px', borderRadius: '8px'}}>
+            <h1 style={{fontSize: '32px', fontWeight: '700', color: 'white', background: '#1e293b', padding: '16px 24px', borderRadius: '8px', border: '2px solid white', margin: 0}}>
               Attendance
             </h1>
           </div>
-          <div style={{display: 'flex', alignItems: 'center', gap: '10px'}}>
-            <div className="year-display">{selectedYear}</div>
-            <button
-              onClick={() => setShowMenu(!showMenu)}
-              style={{padding: '8px 12px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '16px'}}
-            >
-              ☰
-            </button>
+          <div className="flex items-center gap-3">
+            <div className="btn btn-secondary" style={{cursor: 'default'}}>
+              📅 {monthNames[selectedMonth]} {selectedYear}
+            </div>
+            <div style={{position: 'relative'}}>
+              <button
+                onClick={() => setShowMenu(!showMenu)}
+                className="btn btn-primary"
+              >
+                ☰ Menu
+              </button>
+              {showMenu && (
+                <>
+                  <div 
+                    style={{position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.3)', zIndex: 999}}
+                    onClick={() => setShowMenu(false)}
+                  />
+                  <div className="dropdown-menu">
+                    <button className="dropdown-item" onClick={() => {setCurrentView('add'); setShowMenu(false);}}>
+                      👤 Add Student
+                    </button>
+                    <button className="dropdown-item" onClick={() => {setCurrentView('view'); setShowMenu(false);}}>
+                      📊 View Reports
+                    </button>
+                    <button className="dropdown-item" onClick={() => {setCurrentView('inactive'); setShowMenu(false);}}>
+                      ⏸️ Inactive Students
+                    </button>
+                    <button className="dropdown-item" onClick={() => {setCurrentView('absent'); setShowMenu(false);}}>
+                      ❌ Absent Students
+                    </button>
+                    <button className="dropdown-item" onClick={() => {setCurrentView('settings'); setShowMenu(false);}}>
+                      ⚙️ Settings
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
-          
-          {showMenu && (
-            <>
-              <div 
-                style={{position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.3)', zIndex: 40}}
-                onClick={() => setShowMenu(false)}
-              />
-              <div style={{position: 'absolute', top: '80px', right: '20px', backgroundColor: 'white', border: '1px solid #ddd', borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.15)', zIndex: 50, minWidth: '200px', animation: 'slideDown 0.3s ease', transformOrigin: 'top right'}}>
-                <button style={{width: '100%', textAlign: 'left', padding: '12px 16px', border: 'none', backgroundColor: 'transparent', color: '#333', cursor: 'pointer'}} onClick={() => {setCurrentView('add'); setShowMenu(false);}}>
-                  👤 Add Student
-                </button>
-                <button style={{width: '100%', textAlign: 'left', padding: '12px 16px', border: 'none', backgroundColor: 'transparent', color: '#333', cursor: 'pointer'}} onClick={() => {setCurrentView('view'); setShowMenu(false);}}>
-                  📊 View Attendance
-                </button>
-                <button style={{width: '100%', textAlign: 'left', padding: '12px 16px', border: 'none', backgroundColor: 'transparent', color: '#333', cursor: 'pointer'}} onClick={() => {setCurrentView('inactive'); setShowMenu(false);}}>
-                  ⏸️ Stopped Students
-                </button>
-                <button style={{width: '100%', textAlign: 'left', padding: '12px 16px', border: 'none', backgroundColor: 'transparent', color: '#333', cursor: 'pointer'}} onClick={() => {setCurrentView('absent'); setShowMenu(false);}}>
-                  ❌ Absent Students
-                </button>
-                <button style={{width: '100%', textAlign: 'left', padding: '12px 16px', border: 'none', backgroundColor: 'transparent', color: '#333', cursor: 'pointer'}} onClick={() => {setCurrentView('settings'); setShowMenu(false);}}>
-                  ⚙️ Settings
-                </button>
-              </div>
-            </>
-          )}
         </header>
 
-        <section className="selection-section">
-          <h2>Select Month & Year</h2>
-          <div className="select-container">
-            <select
-              value={selectedMonth}
-              onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
-              className="select-input"
-            >
-              {monthNames.map((month, index) => (
-                <option key={index} value={index}>{month}</option>
-              ))}
-            </select>
-            <select
-              value={selectedYear}
-              onChange={(e) => setSelectedYear(parseInt(e.target.value))}
-              className="select-input"
-            >
-              {getYearOptions().map((year) => (
-                <option key={year} value={year}>{year}</option>
-              ))}
-            </select>
+        <div className="card">
+          <div className="card-header">
+            <h2 className="card-title">📅 Select Period</h2>
+            <div className="flex gap-2">
+              <button 
+                className="btn btn-primary"
+                onClick={() => {
+                  const today = new Date();
+                  setSelectedMonth(today.getMonth());
+                  setSelectedYear(today.getFullYear());
+                }}
+              >
+                📍 Current Month
+              </button>
+            </div>
           </div>
-        </section>
+          <div className="flex gap-3">
+            <div className="form-group" style={{flex: 1}}>
+              <label className="form-label">Month</label>
+              <select
+                value={selectedMonth}
+                onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
+                className="form-input"
+              >
+                {monthNames.map((month, index) => (
+                  <option key={index} value={index}>{month}</option>
+                ))}
+              </select>
+            </div>
+            <div className="form-group" style={{flex: 1}}>
+              <label className="form-label">Year</label>
+              <select
+                value={selectedYear}
+                onChange={(e) => setSelectedYear(parseInt(e.target.value))}
+                className="form-input"
+              >
+                {getYearOptions().map((year) => (
+                  <option key={year} value={year}>{year}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+        </div>
 
-        <section className="attendance-section">
-          <h2>
-            Attendance for {monthNames[selectedMonth]} {selectedYear}
-          </h2>
-          <table className="attendance-table">
+        <div className="card">
+          <div className="card-header">
+            <h2 className="card-title" style={{color: 'white', backgroundColor: 'transparent'}}>
+              📋 <span style={{color: 'white'}}>Attendance for {monthNames[selectedMonth]} {selectedYear}</span>
+            </h2>
+            <div className="flex gap-2">
+              <button 
+                className="btn btn-success"
+                onClick={() => {
+                  const monthKey = getCurrentMonthKey();
+                  const sundays = getSundaysInMonth();
+                  
+                  let csvContent = `Student Name,${sundays.join(',')},Present,Absent\n`;
+                  
+                  students.forEach(student => {
+                    const { presentCount, absentCount } = calculateAttendanceSummary(student);
+                    const attendanceRow = sundays.map(day => {
+                      const status = student.attendance?.[monthKey]?.[day];
+                      return status === true ? 'P' : status === false ? 'A' : '-';
+                    });
+                    
+                    csvContent += `"${student.firstName} ${student.lastName}",${attendanceRow.join(',')},${presentCount},${absentCount}\n`;
+                  });
+                  
+                  const blob = new Blob([csvContent], { type: 'text/csv' });
+                  const url = window.URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = `Attendance_${monthNames[selectedMonth]}_${selectedYear}.csv`;
+                  a.click();
+                  window.URL.revokeObjectURL(url);
+                  
+                  showMessage('Attendance report exported successfully!');
+                }}
+              >
+                📊 Export Report
+              </button>
+            </div>
+          </div>
+          <div className="table-container">
+            <table className="table">
             <thead>
               <tr>
-                <th>
-                  Names
-                </th>
+                <th>Names ({students.length})</th>
                 {renderDays()}
                 <th className="center">
                   Total
@@ -338,6 +423,7 @@ const App = () => {
               </tr>
             </thead>
             <tbody>
+
               {students.length === 0 && (
                 <tr>
                   <td colSpan={getSundaysInMonth().length + 2} className="no-students">
@@ -345,12 +431,25 @@ const App = () => {
                   </td>
                 </tr>
               )}
-              {students.map((student) => {
+              {students.sort((a, b) => {
+                // Sort by belt color order: White, Yellow, Orange, Green, Blue, Brown, Black
+                const beltOrder = ['white', 'yellow', 'orange', 'green', 'blue', 'brown', 'black'];
+                const aBelt = (a.beltColor || 'white').toLowerCase();
+                const bBelt = (b.beltColor || 'white').toLowerCase();
+                const aIndex = beltOrder.indexOf(aBelt);
+                const bIndex = beltOrder.indexOf(bBelt);
+                
+                if (aIndex !== bIndex) {
+                  return aIndex - bIndex;
+                }
+                // If same belt, sort by name
+                return `${a.firstName} ${a.lastName}`.localeCompare(`${b.firstName} ${b.lastName}`);
+              }).map((student) => {
                 const { presentCount, absentCount } = calculateAttendanceSummary(student);
                 return (
                   <tr key={student.id}>
                     <td className="names">
-                      <span>{student.firstName} {student.lastName}</span>
+                      <span style={{fontWeight: '600'}}>{student.firstName} {student.lastName}</span>
                     </td>
                     {getSundaysInMonth().map((day) => (
                       <td key={day} className="attendance-cell">
@@ -372,8 +471,9 @@ const App = () => {
                 );
               })}
             </tbody>
-          </table>
-        </section>
+            </table>
+          </div>
+        </div>
 
 
       </div>
