@@ -8,6 +8,7 @@ const AddStudent = ({ onBack, onStudentAdded }) => {
   const [fatherName, setFatherName] = useState('');
   const [address, setAddress] = useState('');
   const [beltColor, setBeltColor] = useState('white');
+  const [monthlyFees, setMonthlyFees] = useState('');
   const [message, setMessage] = useState('');
   const [isMessageVisible, setIsMessageVisible] = useState(false);
 
@@ -35,7 +36,9 @@ const AddStudent = ({ onBack, onStudentAdded }) => {
       fatherName,
       address,
       beltColor,
+      monthlyFees: parseFloat(monthlyFees) || 0,
       attendance: {},
+      feesPaid: {},
     };
 
     try {
@@ -54,6 +57,7 @@ const AddStudent = ({ onBack, onStudentAdded }) => {
         setFatherName('');
         setAddress('');
         setBeltColor('white');
+        setMonthlyFees('');
         
         if (onStudentAdded) onStudentAdded();
       } else {
@@ -75,16 +79,16 @@ const AddStudent = ({ onBack, onStudentAdded }) => {
         )}
         
         <div className="card-header">
-          <button onClick={onBack} className="btn btn-secondary">
+          <button onClick={onBack} className="btn btn-secondary hover-lift">
             ← Back to Main
           </button>
-          <h1 className="card-title">👤 Add New Student</h1>
+          <h1 className="card-title gradient-text">👤 Add New Student</h1>
           <div></div>
         </div>
 
         <div className="card">
-          <form onSubmit={handleSubmit} style={{display: 'flex', flexDirection: 'column', gap: 'calc(var(--spacing) * 3)'}}>
-            <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'calc(var(--spacing) * 3)'}}>
+          <form onSubmit={handleSubmit} className="fade-in" style={{display: 'flex', flexDirection: 'column', gap: 'var(--spacing-xl)'}}>
+            <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--spacing-xl)'}}>
               <div className="form-group">
                 <label className="form-label">First Name *</label>
                 <input
@@ -108,7 +112,7 @@ const AddStudent = ({ onBack, onStudentAdded }) => {
               </div>
             </div>
 
-            <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'calc(var(--spacing) * 3)'}}>
+            <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--spacing-xl)'}}>
               <div className="form-group">
                 <label className="form-label">📱 Phone Number</label>
                 <input
@@ -140,7 +144,7 @@ const AddStudent = ({ onBack, onStudentAdded }) => {
               </div>
             </div>
 
-            <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'calc(var(--spacing) * 3)'}}>
+            <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--spacing-xl)'}}>
               <div className="form-group">
                 <label className="form-label">🥋 Belt Color</label>
                 <select
@@ -157,7 +161,18 @@ const AddStudent = ({ onBack, onStudentAdded }) => {
                   <option value="black">⚫ Black Belt</option>
                 </select>
               </div>
-              <div></div>
+              <div className="form-group">
+                <label className="form-label">💰 Monthly Fees</label>
+                <input
+                  type="number"
+                  placeholder="Enter monthly fees amount"
+                  value={monthlyFees}
+                  onChange={(e) => setMonthlyFees(e.target.value)}
+                  className="form-input"
+                  min="0"
+                  step="0.01"
+                />
+              </div>
             </div>
 
             <div className="form-group">
@@ -181,7 +196,7 @@ const AddStudent = ({ onBack, onStudentAdded }) => {
               />
             </div>
 
-            <button type="submit" className="btn btn-success" style={{fontSize: '16px', padding: 'calc(var(--spacing) * 2) calc(var(--spacing) * 4)'}}>
+            <button type="submit" className="btn btn-success hover-lift" style={{fontSize: '16px', padding: 'var(--spacing-lg) var(--spacing-2xl)', fontWeight: '600'}}>
               ➕ Add Student
             </button>
           </form>

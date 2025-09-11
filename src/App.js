@@ -6,6 +6,11 @@ import InactiveStudents from './pages/InactiveStudents';
 import AbsentStudents from './pages/AbsentStudents';
 import PinLogin from './pages/PinLogin';
 import Settings from './pages/Settings';
+import Dashboard from './pages/Dashboard';
+import BulkOperations from './pages/BulkOperations';
+import Analytics from './pages/Analytics';
+import Notifications from './pages/Notifications';
+import Fees from './pages/Fees';
 import AttendanceControl from './components/AttendanceControl';
 
 const App = () => {
@@ -15,6 +20,9 @@ const App = () => {
     return false;
   });
   const [students, setStudents] = useState([]);
+  const [isDarkTheme, setIsDarkTheme] = useState(() => {
+    return localStorage.getItem('theme') === 'dark';
+  });
 
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
@@ -30,6 +38,21 @@ const App = () => {
       setIsLoggedIn(true);
     }
   }, []);
+
+  // Theme management
+  useEffect(() => {
+    if (isDarkTheme) {
+      document.body.classList.add('dark-theme');
+      localStorage.setItem('theme', 'dark');
+    } else {
+      document.body.classList.remove('dark-theme');
+      localStorage.setItem('theme', 'light');
+    }
+  }, [isDarkTheme]);
+
+  const toggleTheme = () => {
+    setIsDarkTheme(!isDarkTheme);
+  };
 
   // Load locked days from localStorage
   useEffect(() => {
@@ -239,6 +262,10 @@ const App = () => {
     return { presentCount, absentCount };
   };
 
+  if (currentView === 'dashboard') {
+    return <Dashboard onBack={() => setCurrentView('main')} />;
+  }
+
   if (currentView === 'view') {
     return <AttendanceView onBack={() => setCurrentView('main')} />;
   }
@@ -253,6 +280,22 @@ const App = () => {
     }} />;
   }
 
+  if (currentView === 'bulk') {
+    return <BulkOperations onBack={() => setCurrentView('main')} />;
+  }
+
+  if (currentView === 'analytics') {
+    return <Analytics onBack={() => setCurrentView('main')} />;
+  }
+
+  if (currentView === 'notifications') {
+    return <Notifications onBack={() => setCurrentView('main')} />;
+  }
+
+  if (currentView === 'fees') {
+    return <Fees onBack={() => setCurrentView('main')} />;
+  }
+
   if (currentView === 'inactive') {
     return <InactiveStudents onBack={() => setCurrentView('main')} />;
   }
@@ -260,7 +303,6 @@ const App = () => {
   if (currentView === 'settings') {
     return <Settings onBack={() => setCurrentView('main')} />;
   }
-
   if (currentView === 'absent') {
     return <AbsentStudents onBack={() => setCurrentView('main')} />;
   }
@@ -283,18 +325,25 @@ const App = () => {
             <span className="karate-emoji" role="img" aria-label="karate">
               🥋
             </span>
-            <h1 style={{fontSize: '32px', fontWeight: '700', color: 'white', background: '#1e293b', padding: '16px 24px', borderRadius: '8px', border: '2px solid white', margin: 0}}>
-              Attendance
+            <h1 className="app-title">
+              Attendance System
             </h1>
           </div>
           <div className="flex items-center gap-3">
-            <div className="btn btn-secondary" style={{cursor: 'default'}}>
+            <div className="status-info" style={{cursor: 'default', padding: 'var(--spacing-md) var(--spacing-lg)', fontSize: '14px', fontWeight: '600'}}>
               📅 {monthNames[selectedMonth]} {selectedYear}
             </div>
+            <button
+              onClick={toggleTheme}
+              className="theme-toggle"
+              title={isDarkTheme ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+            >
+              {isDarkTheme ? '☀️' : '🌙'}
+            </button>
             <div style={{position: 'relative'}}>
               <button
                 onClick={() => setShowMenu(!showMenu)}
-                className="btn btn-primary"
+                className="btn btn-primary hover-lift"
               >
                 ☰ Menu
               </button>
@@ -305,17 +354,32 @@ const App = () => {
                     onClick={() => setShowMenu(false)}
                   />
                   <div className="dropdown-menu">
+                    <button className="dropdown-item" onClick={() => {setCurrentView('dashboard'); setShowMenu(false);}}>
+                      📊 Dashboard
+                    </button>
                     <button className="dropdown-item" onClick={() => {setCurrentView('add'); setShowMenu(false);}}>
                       👤 Add Student
                     </button>
-                    <button className="dropdown-item" onClick={() => {setCurrentView('view'); setShowMenu(false);}}>
-                      📊 View Reports
+                    <button className="dropdown-item" onClick={() => {setCurrentView('bulk'); setShowMenu(false);}}>
+                      ⚡ Bulk Operations
                     </button>
-                    <button className="dropdown-item" onClick={() => {setCurrentView('inactive'); setShowMenu(false);}}>
-                      ⏸️ Inactive Students
+                    <button className="dropdown-item" onClick={() => {setCurrentView('analytics'); setShowMenu(false);}}>
+                      📈 Analytics
+                    </button>
+                    <button className="dropdown-item" onClick={() => {setCurrentView('notifications'); setShowMenu(false);}}>
+                      🔔 Notifications
+                    </button>
+                    <button className="dropdown-item" onClick={() => {setCurrentView('fees'); setShowMenu(false);}}>
+                      💰 Fees Management
+                    </button>
+                    <button className="dropdown-item" onClick={() => {setCurrentView('view'); setShowMenu(false);}}>
+                      📋 View Reports
                     </button>
                     <button className="dropdown-item" onClick={() => {setCurrentView('absent'); setShowMenu(false);}}>
                       ❌ Absent Students
+                    </button>
+                    <button className="dropdown-item" onClick={() => {setCurrentView('inactive'); setShowMenu(false);}}>
+                      ⏸️ Inactive Students
                     </button>
                     <button className="dropdown-item" onClick={() => {setCurrentView('settings'); setShowMenu(false);}}>
                       ⚙️ Settings
@@ -332,7 +396,7 @@ const App = () => {
             <h2 className="card-title">📅 Select Period</h2>
             <div className="flex gap-2">
               <button 
-                className="btn btn-primary"
+                className="btn btn-primary hover-lift"
                 onClick={() => {
                   const today = new Date();
                   setSelectedMonth(today.getMonth());
@@ -373,12 +437,12 @@ const App = () => {
 
         <div className="card">
           <div className="card-header">
-            <h2 className="card-title" style={{color: 'white', backgroundColor: 'transparent'}}>
-              📋 <span style={{color: 'white'}}>Attendance for {monthNames[selectedMonth]} {selectedYear}</span>
+            <h2 className="card-title">
+              📋 Attendance for {monthNames[selectedMonth]} {selectedYear}
             </h2>
             <div className="flex gap-2">
               <button 
-                className="btn btn-success"
+                className="btn btn-success hover-lift"
                 onClick={() => {
                   const monthKey = getCurrentMonthKey();
                   const sundays = getSundaysInMonth();

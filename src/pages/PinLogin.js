@@ -56,79 +56,80 @@ const PinLogin = ({ onLogin }) => {
   }, [pin]);
 
   return (
-    <div style={{
-      display: 'flex',
-      justifyContent: 'center',
-      alignItems: 'center',
+    <div className="flex justify-center items-center" style={{
       minHeight: '100vh',
-      backgroundColor: '#1a1a1a'
+      background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 50%, #cbd5e1 100%)'
     }}>
-      <div style={{
-        backgroundColor: '#2d2d2d',
-        padding: '20px',
-        borderRadius: '8px',
-        boxShadow: '0 4px 6px rgba(0, 0, 0, 0.3)',
+      <div className="card hover-lift" style={{
         width: '95%',
-        maxWidth: '320px',
+        maxWidth: '380px',
         textAlign: 'center',
-        border: '1px solid #404040'
+        padding: 'var(--spacing-2xl)',
+        background: 'var(--bg-card)',
+        boxShadow: 'var(--shadow-xl)',
+        borderRadius: 'var(--radius-lg)'
       }}>
-        <div style={{ marginBottom: '30px' }}>
-          <span style={{ fontSize: '48px' }}>📅</span>
-          <h1 style={{ margin: '10px 0', color: '#007bff' }}>Attendance App</h1>
-          <p style={{ color: '#cccccc', margin: 0 }}>Enter PIN to continue</p>
+        <div style={{ marginBottom: 'var(--spacing-2xl)' }}>
+          <span className="karate-emoji" style={{ fontSize: '56px', display: 'block', marginBottom: 'var(--spacing-md)' }}>🥋</span>
+          <h1 className="gradient-text" style={{ 
+            margin: 'var(--spacing-md) 0', 
+            fontFamily: 'Poppins, sans-serif',
+            fontSize: '28px',
+            fontWeight: '700'
+          }}>Attendance System</h1>
+          <p style={{ 
+            color: 'var(--text-secondary)', 
+            margin: 0,
+            fontSize: '14px',
+            fontWeight: '500'
+          }}>Enter your PIN to continue</p>
         </div>
 
-        <div style={{
-          display: 'flex',
-          justifyContent: 'center',
-          gap: '10px',
-          marginBottom: '20px'
+        <div className="flex justify-center gap-2" style={{
+          marginBottom: 'var(--spacing-xl)'
         }}>
           {[0, 1, 2, 3].map(i => (
-            <div key={i} style={{
-              width: '20px',
-              height: '20px',
+            <div key={i} className="transition" style={{
+              width: '16px',
+              height: '16px',
               borderRadius: '50%',
-              backgroundColor: i < pin.length ? '#007bff' : '#404040'
+              backgroundColor: i < pin.length ? 'var(--primary)' : 'var(--border)',
+              boxShadow: i < pin.length ? 'var(--shadow-sm)' : 'none',
+              transform: i < pin.length ? 'scale(1.1)' : 'scale(1)'
             }} />
           ))}
         </div>
 
         {error && (
-          <div style={{
-            backgroundColor: '#2d1b1b',
-            color: '#dc3545',
-            padding: '10px',
-            borderRadius: '4px',
-            marginBottom: '20px',
-            border: '1px solid #dc3545'
+          <div className="status-error" style={{
+            padding: 'var(--spacing-md)',
+            borderRadius: 'var(--radius)',
+            marginBottom: 'var(--spacing-xl)',
+            textAlign: 'center',
+            fontWeight: '500'
           }}>
-            {error}
+            ⚠️ {error}
           </div>
         )}
 
         <div style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(3, 1fr)',
-          gap: '10px',
-          marginBottom: '20px'
+          gap: 'var(--spacing-md)',
+          marginBottom: 'var(--spacing-xl)'
         }}>
           {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(digit => (
             <button
               key={digit}
               onClick={() => handlePinInput(digit.toString())}
+              className="btn-secondary hover-lift"
               style={{
                 width: '70px',
                 height: '70px',
-                fontSize: '24px',
-                fontWeight: 'bold',
-                backgroundColor: '#2d2d2d',
-                color: '#ffffff',
-                border: '2px solid #404040',
-                borderRadius: '8px',
-                cursor: 'pointer',
-                transition: 'background-color 0.3s ease'
+                fontSize: '20px',
+                fontWeight: '600',
+                borderRadius: 'var(--radius-md)',
+                fontFamily: 'Inter, sans-serif'
               }}
             >
               {digit}
@@ -136,32 +137,29 @@ const PinLogin = ({ onLogin }) => {
           ))}
           <button
             onClick={handleClear}
+            className="btn-danger hover-lift"
             style={{
               width: '70px',
               height: '70px',
-              fontSize: '16px',
-              background: 'linear-gradient(135deg, #dc3545 0%, #a71d2a 100%)',
-              color: 'white',
-              border: 'none',
-              borderRadius: '8px',
-              cursor: 'pointer'
+              fontSize: '12px',
+              fontWeight: '600',
+              borderRadius: 'var(--radius-md)',
+              textTransform: 'uppercase',
+              letterSpacing: '0.5px'
             }}
           >
             Clear
           </button>
           <button
             onClick={() => handlePinInput('0')}
+            className="btn-secondary hover-lift"
             style={{
               width: '70px',
               height: '70px',
-              fontSize: '24px',
-              fontWeight: 'bold',
-              backgroundColor: '#2d2d2d',
-              color: '#ffffff',
-              border: '2px solid #404040',
-              borderRadius: '8px',
-              cursor: 'pointer',
-              transition: 'background-color 0.3s ease'
+              fontSize: '20px',
+              fontWeight: '600',
+              borderRadius: 'var(--radius-md)',
+              fontFamily: 'Inter, sans-serif'
             }}
           >
             0
@@ -169,15 +167,17 @@ const PinLogin = ({ onLogin }) => {
           <button
             onClick={handleSubmit}
             disabled={pin.length !== 4}
+            className={pin.length === 4 ? 'btn-success hover-lift' : 'btn-secondary'}
             style={{
               width: '70px',
               height: '70px',
-              fontSize: '16px',
-              background: pin.length === 4 ? 'linear-gradient(135deg, #28a745 0%, #20c997 100%)' : '#404040',
-              color: 'white',
-              border: 'none',
-              borderRadius: '8px',
-              cursor: pin.length === 4 ? 'pointer' : 'not-allowed'
+              fontSize: '12px',
+              fontWeight: '600',
+              borderRadius: 'var(--radius-md)',
+              textTransform: 'uppercase',
+              letterSpacing: '0.5px',
+              cursor: pin.length === 4 ? 'pointer' : 'not-allowed',
+              opacity: pin.length === 4 ? 1 : 0.6
             }}
           >
             Enter

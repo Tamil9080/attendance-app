@@ -47,10 +47,7 @@ const AttendanceControl = ({ studentId, day, status, handleAttendanceChange, sho
     <div 
       onClick={toggleAttendance} 
       className={className}
-      style={{
-        opacity: isLocked ? 0.6 : 1,
-        cursor: isLocked ? 'not-allowed' : 'pointer'
-      }}
+      title={isLocked ? "Day is locked. Click Edit to make changes." : "Click to toggle attendance"}
     >
       {controlContent}
     </div>

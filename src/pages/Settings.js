@@ -53,107 +53,81 @@ const Settings = ({ onBack }) => {
   };
 
   return (
-    <div className="settings-container" style={{padding: '20px', fontFamily: 'Arial, sans-serif', backgroundColor: '#1a1a1a', color: '#ffffff', minHeight: '100vh'}}>
-      <div className="settings-header" style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px'}}>
-        <button
-          onClick={onBack}
-          style={{padding: '8px 16px', background: 'linear-gradient(135deg, #6b7280 0%, #4a4845 100%)', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer'}}
-        >
-          Back to Main
-        </button>
-        <h1 style={{margin: 0, color: '#ffffff'}}>Settings</h1>
-        <div></div>
-      </div>
-
-      <div className="settings-form-container" style={{maxWidth: '400px', margin: '0 auto', padding: '0 20px'}}>
-        <div className="settings-card" style={{backgroundColor: '#2d2d2d', padding: '30px', borderRadius: '8px', border: '1px solid #404040', marginBottom: '20px'}}>
-          <h2 className="settings-title" style={{marginTop: 0, color: '#ffffff'}}>Change PIN</h2>
-          
-          <div className="settings-input-group" style={{marginBottom: '15px'}}>
-            <label className="settings-label" style={{display: 'block', marginBottom: '5px', fontWeight: 'bold'}}>Current PIN:</label>
-            <input
-              type="password"
-              value={currentPin}
-              onChange={(e) => setCurrentPin(e.target.value)}
-              maxLength="4"
-              className="settings-input"
-              style={{width: '100%', padding: '10px', border: '2px solid #404040', borderRadius: '4px', backgroundColor: '#1a1a1a', color: '#ffffff'}}
-            />
-          </div>
-
-          <div className="settings-input-group" style={{marginBottom: '15px'}}>
-            <label className="settings-label" style={{display: 'block', marginBottom: '5px', fontWeight: 'bold'}}>New PIN:</label>
-            <input
-              type="password"
-              value={newPin}
-              onChange={(e) => setNewPin(e.target.value)}
-              maxLength="4"
-              className="settings-input"
-              style={{width: '100%', padding: '10px', border: '2px solid #404040', borderRadius: '4px', backgroundColor: '#1a1a1a', color: '#ffffff'}}
-            />
-          </div>
-
-          <div className="settings-input-group" style={{marginBottom: '15px'}}>
-            <label className="settings-label" style={{display: 'block', marginBottom: '5px', fontWeight: 'bold'}}>Confirm New PIN:</label>
-            <input
-              type="password"
-              value={confirmPin}
-              onChange={(e) => setConfirmPin(e.target.value)}
-              maxLength="4"
-              className="settings-input"
-              style={{width: '100%', padding: '10px', border: '2px solid #404040', borderRadius: '4px', backgroundColor: '#1a1a1a', color: '#ffffff'}}
-            />
-          </div>
-
-          {message && (
-            <div style={{
-              padding: '10px',
-              borderRadius: '4px',
-              marginBottom: '15px',
-              backgroundColor: message.includes('successfully') ? '#1b2d1b' : '#2d1b1b',
-              color: message.includes('successfully') ? '#28a745' : '#dc3545',
-              border: '1px solid #404040'
-            }}>
-              {message}
-            </div>
-          )}
-
-          <button
-            onClick={handleChangePIN}
-            className="settings-button"
-            style={{
-              width: '100%',
-              padding: '12px',
-              background: 'linear-gradient(135deg, #28a745 0%, #20c997 100%)',
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: 'pointer',
-              fontWeight: 'bold'
-            }}
-          >
-            Change PIN
+    <div className="app-container">
+      <div className="app-content fade-in">
+        <div className="card-header">
+          <button onClick={onBack} className="btn btn-secondary hover-lift">
+            ← Back to Main
           </button>
+          <h1 className="card-title gradient-text">⚙️ Settings</h1>
+          <div></div>
         </div>
 
-        <div className="settings-card" style={{backgroundColor: '#2d2d2d', padding: '30px', borderRadius: '8px', border: '1px solid #404040'}}>
-          <h2 className="settings-title" style={{marginTop: 0, color: '#ffffff'}}>Account</h2>
-          <button
-            onClick={handleLogout}
-            className="settings-button"
-            style={{
-              width: '100%',
-              padding: '12px',
-              background: 'linear-gradient(135deg, #dc3545 0%, #a71d2a 100%)',
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: 'pointer',
-              fontWeight: 'bold'
-            }}
-          >
-            Logout
-          </button>
+        <div style={{maxWidth: '500px', margin: '0 auto'}}>
+          <div className="card hover-lift">
+            <h2 className="card-title">🔐 Change PIN</h2>
+          
+            <div className="form-group">
+              <label className="form-label">Current PIN:</label>
+              <input
+                type="password"
+                value={currentPin}
+                onChange={(e) => setCurrentPin(e.target.value)}
+                maxLength="4"
+                className="form-input"
+                placeholder="Enter current PIN"
+              />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">New PIN:</label>
+              <input
+                type="password"
+                value={newPin}
+                onChange={(e) => setNewPin(e.target.value)}
+                maxLength="4"
+                className="form-input"
+                placeholder="Enter new 4-digit PIN"
+              />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Confirm New PIN:</label>
+              <input
+                type="password"
+                value={confirmPin}
+                onChange={(e) => setConfirmPin(e.target.value)}
+                maxLength="4"
+                className="form-input"
+                placeholder="Confirm new PIN"
+              />
+            </div>
+
+            {message && (
+              <div className={message.includes('successfully') ? 'status-success' : 'status-error'} style={{marginBottom: 'var(--spacing-lg)'}}>
+                {message.includes('successfully') ? '✅' : '⚠️'} {message}
+              </div>
+            )}
+
+            <button
+              onClick={handleChangePIN}
+              className="btn btn-primary hover-lift"
+              style={{width: '100%', padding: 'var(--spacing-lg)'}}
+            >
+              🔄 Change PIN
+            </button>
+          </div>
+
+          <div className="card hover-lift">
+            <h2 className="card-title">👤 Account</h2>
+            <button
+              onClick={handleLogout}
+              className="btn btn-danger hover-lift"
+              style={{width: '100%', padding: 'var(--spacing-lg)'}}
+            >
+              🚪 Logout
+            </button>
+          </div>
         </div>
       </div>
     </div>
