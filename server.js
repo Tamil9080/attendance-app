@@ -53,6 +53,17 @@ db.execute(`
 `);
 
 db.execute(`
+  CREATE TABLE IF NOT EXISTS fees (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    student_id INT NOT NULL,
+    amount DECIMAL(10, 2) NOT NULL,
+    date DATE NOT NULL,
+    status VARCHAR(20) DEFAULT 'pending',
+    FOREIGN KEY (student_id) REFERENCES students(id)
+  )
+`);
+
+db.execute(`
   CREATE TABLE IF NOT EXISTS users (
     id INT AUTO_INCREMENT PRIMARY KEY,
     username VARCHAR(50) UNIQUE NOT NULL,

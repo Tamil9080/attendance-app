@@ -1,10 +1,36 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 const Settings = ({ onBack }) => {
   const [currentPin, setCurrentPin] = useState('');
   const [newPin, setNewPin] = useState('');
   const [confirmPin, setConfirmPin] = useState('');
   const [message, setMessage] = useState('');
+  const [defaultFee, setDefaultFee] = useState('');
+
+  useEffect(() => {
+    fetch(`${window.location.protocol}//${window.location.hostname}:3001/settings/defaultFee`)
+      .then(res => res.json())
+      .then(data => setDefaultFee(data.value || ''))
+      .catch(e => console.error('Could not load settings', e));
+  }, []);
+
+  const handleSetDefaultFee = async () => {
+    try {
+      const response = await fetch(`${window.location.protocol}//${window.location.hostname}:3001/settings`,
+        {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ key: 'defaultFee', value: defaultFee })
+        });
+      if (response.ok) {
+        setMessage('Default fee updated successfully!');
+      } else {
+        setMessage('Failed to update default fee');
+      }
+    } catch (e) {
+      setMessage('Error: Server not available');
+    }
+  };
 
   const handleChangePIN = async () => {
     try {
@@ -64,6 +90,27 @@ const Settings = ({ onBack }) => {
         </div>
 
         <div style={{maxWidth: '500px', margin: '0 auto'}}>
+          <div className="card hover-lift">
+            <h2 className="card-title">💰 Fee Settings</h2>
+            <div className="form-group">
+              <label className="form-label">Default Monthly Fee:</label>
+              <input
+                type="number"
+                value={defaultFee}
+                onChange={(e) => setDefaultFee(e.target.value)}
+                className="form-input"
+                placeholder="Enter default fee amount"
+              />
+            </div>
+            <button
+              onClick={handleSetDefaultFee}
+              className="btn btn-primary hover-lift"
+              style={{width: '100%', padding: 'var(--spacing-lg)'}}
+            >
+              💾 Save Default Fee
+            </button>
+          </div>
+
           <div className="card hover-lift">
             <h2 className="card-title">🔐 Change PIN</h2>
           
