@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { API_BASE_URL } from '../config';
 
 const AddStudent = ({ onBack, onStudentAdded }) => {
   const [firstName, setFirstName] = useState('');
@@ -28,6 +29,8 @@ const AddStudent = ({ onBack, onStudentAdded }) => {
       return;
     }
 
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+
     const newStudent = {
       firstName,
       lastName,
@@ -39,10 +42,11 @@ const AddStudent = ({ onBack, onStudentAdded }) => {
       monthlyFees: parseFloat(monthlyFees) || 0,
       attendance: {},
       feesPaid: {},
+      userId: user.id
     };
 
     try {
-      const response = await fetch(`${window.location.protocol}//${window.location.hostname}:3001/students`, {
+      const response = await fetch(`${API_BASE_URL}/students`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newStudent)

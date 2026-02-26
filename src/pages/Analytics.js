@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { API_BASE_URL } from '../config';
 
 const Analytics = ({ onBack }) => {
   const [students, setStudents] = useState([]);
@@ -6,11 +7,19 @@ const Analytics = ({ onBack }) => {
   const [selectedPeriod, setSelectedPeriod] = useState('month');
 
   useEffect(() => {
-    fetch(`${window.location.protocol}//${window.location.hostname}:3001/students`)
+    const user = JSON.parse(localStorage.getItem('user'));
+    const userId = user ? user.id : null;
+
+    fetch(`${API_BASE_URL}/students?userId=${userId}`)
       .then(res => res.json())
       .then(data => {
-        setStudents(data);
-        calculateAnalytics(data);
+        if (Array.isArray(data)) {
+          setStudents(data);
+          calculateAnalytics(data);
+        } else {
+          console.error('API error:', data);
+          setStudents([]);
+        }
       })
       .catch(e => console.error('Error loading students:', e));
   }, [selectedPeriod]);

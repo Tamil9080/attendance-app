@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-
-const API_URL = `${window.location.protocol}//${window.location.hostname}:3001`;
+import { API_BASE_URL } from '../config';
 
 const Fees = ({ onBack }) => {
   const [students, setStudents] = useState([]);
@@ -18,7 +17,7 @@ const Fees = ({ onBack }) => {
   const [filterStatus, setFilterStatus] = useState('all');
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [paymentModalData, setPaymentModalData] = useState(null);
-  const [defaultFee, setDefaultFee] = useState(0);
+  const [defaultFee, setDefaultFee] = useState(500);
 
   const monthNames = [
     'January', 'February', 'March', 'April', 'May', 'June',
@@ -26,7 +25,10 @@ const Fees = ({ onBack }) => {
   ];
 
   useEffect(() => {
-    fetch(`${API_URL}/students`)
+    const user = JSON.parse(localStorage.getItem('user'));
+    const userId = user ? user.id : null;
+
+    fetch(`${API_BASE_URL}/students?userId=${userId}`)
       .then(res => res.json())
       .then(data => {
         setStudents(data);
@@ -34,15 +36,10 @@ const Fees = ({ onBack }) => {
       })
       .catch(e => console.error('Error loading students:', e));
     
-    fetch(`${API_URL}/fees`)
+    fetch(`${API_BASE_URL}/fees?userId=${userId}`)
       .then(res => res.json())
       .then(data => setPaymentHistory(data))
       .catch(e => console.error('Error loading payment history:', e));
-
-    fetch(`${API_URL}/settings/defaultFee`)
-      .then(res => res.json())
-      .then(data => setDefaultFee(parseFloat(data.value) || 0))
-      .catch(e => console.error('Could not load settings', e));
   }, []);
 
   const getFeeStatus = (student, monthIndex) => {
@@ -85,7 +82,6 @@ const Fees = ({ onBack }) => {
     const isPaid = student.feesPaid?.[monthKey];
 
     if (isPaid) {
-      // Logic to un-pay
       const updatedStudent = {
           ...student,
           feesPaid: {
@@ -94,21 +90,18 @@ const Fees = ({ onBack }) => {
           },
       };
       try {
-        const response = await fetch(`${API_URL}/students/${student.id}`, {
+        const response = await fetch(`${API_BASE_URL}/students/${student.id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(updatedStudent)
         });
         if (response.ok) {
           setStudents(prev => prev.map(s => s.id === student.id ? updatedStudent : s));
-          // Also need to delete from /fees endpoint
-          // This is getting complicated. For now, I will just update the student.
         }
       } catch (e) {
         console.error('Error un-paying fee:', e);
       }
     } else {
-      // Open the modal to pay
       setPaymentModalData({ student, monthIndex });
       setShowPaymentModal(true);
     }
@@ -122,7 +115,7 @@ const Fees = ({ onBack }) => {
     };
 
     try {
-      const response = await fetch(`${API_URL}/students/${studentId}`, {
+      const response = await fetch(`${API_BASE_URL}/students/${studentId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updatedStudent)
@@ -146,96 +139,7 @@ const Fees = ({ onBack }) => {
     return beltEmojis[beltColor?.toLowerCase()] || '⚪';
   };
 
-  const bulkMarkPaid = async () => {
-    for (const studentId of selectedStudents) {
-      const currentMonth = new Date().getMonth();
-      await toggleFeeStatus(studentId, currentMonth);
-    }
-    setSelectedStudents([]);
-  };
-
-  const generateReceipt = (student, monthIndex) => {
-    const baseFee = student.monthlyFees || defaultFee;
-    const finalAmount = Math.max(0, baseFee - discount);
-    return {
-      receiptNo: `RCP-${Date.now()}`,
-      studentName: `${student.firstName} ${student.lastName}`,
-      month: monthNames[monthIndex],
-      year: selectedYear,
-      baseFee,
-      discount,
-      finalAmount,
-      paymentMethod,
-      date: new Date().toLocaleDateString()
-    };
-  };
-
-  const sendReminder = async (studentId) => {
-    const student = students.find(s => s.id === studentId);
-    const reminder = {
-      student_id: studentId,
-      student_name: `${student.firstName} ${student.lastName}`,
-      phone: student.phoneNumber,
-      message: `Reminder: Your monthly fee of ₹${student.monthlyFees || defaultFee} is due. Please pay by the 10th.`,
-      sent_date: new Date().toISOString().split('T')[0]
-    };
-    
-    // This would be a POST request to a /reminders endpoint
-    // For now, we'll just log it.
-    console.log("Sending reminder:", reminder);
-    alert(`Reminder sent to ${student.firstName}`);
-  };
-
-  const exportToCSV = () => {
-    const headers = ['Name', 'Belt', 'Monthly Fee', ...monthNames.map(m => m.slice(0,3)), 'Total Paid', 'Total Due'];
-    const rows = filteredStudents.map(student => {
-      const totalPaid = monthNames.reduce((sum, _, i) => sum + (getFeeStatus(student, i) ? (student.monthlyFees || defaultFee) : 0), 0);
-      const totalDue = (student.monthlyFees || defaultFee) * 12 - totalPaid;
-      return [
-        `${student.firstName} ${student.lastName}`,
-        student.beltColor || 'white',
-        student.monthlyFees || defaultFee,
-        ...monthNames.map((_, i) => getFeeStatus(student, i) ? 'Paid' : 'Unpaid'),
-        totalPaid,
-        totalDue
-      ];
-    });
-    
-    const csvContent = [headers, ...rows].map(row => row.join(',')).join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `Fees_Report_${selectedYear}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
-  const getYearlyStats = () => {
-    let totalPaid = 0;
-    let totalUnpaid = 0;
-    let totalCollected = 0;
-    let totalExpected = 0;
-
-    filteredStudents.forEach(student => {
-      monthNames.forEach((_, monthIndex) => {
-        const isPaid = getFeeStatus(student, monthIndex);
-        const feeAmount = student.monthlyFees || defaultFee;
-        
-        if (isPaid) {
-          totalPaid++;
-          totalCollected += feeAmount;
-        } else {
-          totalUnpaid++;
-        }
-        totalExpected += feeAmount;
-      });
-    });
-
-    return { totalPaid, totalUnpaid, totalCollected, totalExpected };
-  };
-
-  const handleFeeAndAttendanceUpdate = async ({ student, monthIndex, paymentMethod, markPresent, discountAmt }) => {
+  const handleFeeAndAttendanceUpdate = async ({ student, monthIndex, paymentMethod, markPresent, discountAmt, notes }) => {
     const monthKey = `${monthNames[monthIndex]}-${selectedYear}`;
     const newStatus = new Date().toISOString();
 
@@ -267,39 +171,66 @@ const Fees = ({ onBack }) => {
     const baseFee = student.monthlyFees || defaultFee;
     const finalAmount = Math.max(0, baseFee - (discountAmt || 0));
     
+    const user = JSON.parse(localStorage.getItem('user'));
+    const userId = user ? user.id : null;
+
     const feeRecord = {
       student_id: student.id,
-      student_name: `${student.firstName} ${student.lastName}`,
+      amount: finalAmount,
       month: monthNames[monthIndex],
       year: selectedYear,
-      amount: finalAmount,
-      base_amount: baseFee,
-      discount: discountAmt || 0,
+      payment_date: newStatus.split('T')[0],
       payment_method: paymentMethod,
-      paid_date: newStatus.split('T')[0],
-      status: 'paid'
+      notes: (discountAmt > 0 ? `Discount applied: ₹${discountAmt}. ` : '') + (notes || ''),
+      userId: userId
     };
 
     try {
-      await fetch(`${API_URL}/fees`, {
+      const feeResponse = await fetch(`${API_BASE_URL}/fees/mark-paid`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(feeRecord)
       });
 
-      const response = await fetch(`${API_URL}/students/${student.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updatedStudent)
-      });
+      const feeData = await feeResponse.json();
 
-      if (response.ok) {
-        setStudents(prev => prev.map(s => s.id === student.id ? updatedStudent : s));
-        setShowPaymentModal(false);
-        setPaymentModalData(null);
+      if (feeResponse.ok) {
+        const studentResponse = await fetch(`${API_BASE_URL}/students/${student.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(updatedStudent)
+        });
+
+        if (studentResponse.ok) {
+          setStudents(prev => prev.map(s => s.id === student.id ? updatedStudent : s));
+          setShowPaymentModal(false);
+          setPaymentModalData(null);
+          
+          // Refetch payment history
+          fetch(`${API_BASE_URL}/fees?userId=${userId}`)
+            .then(res => res.json())
+            .then(data => setPaymentHistory(data))
+            .catch(e => console.error('Error reloading payment history:', e));
+
+          if (window.confirm(`Fee payment of ₹${finalAmount} saved successfully! Do you want a receipt?`)) {
+            setShowReceipt({
+              student_name: `${student.firstName} ${student.lastName}`,
+              amount: finalAmount,
+              month: monthNames[monthIndex],
+              year: selectedYear,
+              payment_date: newStatus,
+              payment_method: paymentMethod,
+              notes: (discountAmt > 0 ? `Discount applied: ₹${discountAmt}. ` : '') + (notes || ''),
+              id: feeData.id
+            });
+          }
+        }
+      } else {
+        alert(`Error: ${feeData.error || 'Failed to save fee'}`);
       }
     } catch (e) {
       console.error('Error updating fee and attendance:', e);
+      alert(`Error: ${e.message}`);
     }
   };
 
@@ -308,8 +239,6 @@ const Fees = ({ onBack }) => {
     try {
       const date = new Date(dateString);
       if (isNaN(date.getTime())) return null;
-      
-      // Format as DD/MM or DD MMM based on preference
       return date.toLocaleDateString('en-GB', { 
         day: '2-digit', 
         month: 'short' 
@@ -319,17 +248,92 @@ const Fees = ({ onBack }) => {
     }
   };
 
+  const ReceiptModal = ({ show, onClose, data }) => {
+    if (!show || !data) return null;
+
+    const { student_name, amount, month, year, payment_date, payment_method, notes, id } = data;
+
+    return (
+      <div style={{position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
+        <style>
+          {`
+            @media print {
+              body * {
+                visibility: hidden;
+              }
+              .receipt-modal-content, .receipt-modal-content * {
+                visibility: visible;
+              }
+              .receipt-modal-content {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                margin: 0;
+                padding: 20px;
+                background: white;
+                border: none;
+                box-shadow: none;
+              }
+              .no-print {
+                display: none !important;
+              }
+            }
+          `}
+        </style>
+        <div className="card receipt-modal-content" style={{maxWidth: '400px', width: '100%', margin: '20px', padding: '20px', backgroundColor: 'white'}}>
+          <div style={{textAlign: 'center', borderBottom: '2px dashed #ccc', paddingBottom: '10px', marginBottom: '10px'}}>
+            <h2 style={{margin: 0}}>FEE RECEIPT</h2>
+            <p style={{margin: '5px 0', fontSize: '12px', color: '#666'}}>Receipt #{id}</p>
+          </div>
+          
+          <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', fontSize: '14px'}}>
+            <div><strong>Date:</strong></div>
+            <div style={{textAlign: 'right'}}>{new Date(payment_date).toLocaleDateString()}</div>
+            
+            <div><strong>Student:</strong></div>
+            <div style={{textAlign: 'right'}}>{student_name}</div>
+            
+            <div><strong>Month/Year:</strong></div>
+            <div style={{textAlign: 'right'}}>{month} {year}</div>
+            
+            <div><strong>Payment Method:</strong></div>
+            <div style={{textAlign: 'right'}}>{payment_method}</div>
+            
+            {notes && (
+              <>
+                <div><strong>Notes:</strong></div>
+                <div style={{textAlign: 'right'}}>{notes}</div>
+              </>
+            )}
+          </div>
+
+          <div style={{borderTop: '2px dashed #ccc', marginTop: '15px', paddingTop: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+            <span style={{fontSize: '16px', fontWeight: 'bold'}}>Total Paid:</span>
+            <span style={{fontSize: '20px', fontWeight: 'bold', color: 'var(--success)'}}>₹{amount}</span>
+          </div>
+
+          <div className="flex gap-2 mt-4 no-print">
+            <button onClick={() => window.print()} className="btn btn-primary" style={{flex: 1}}>🖨️ Print</button>
+            <button onClick={onClose} className="btn btn-secondary" style={{flex: 1}}>Close</button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   const PaymentModal = ({ show, onClose, data, onSubmit }) => {
     const [paymentType, setPaymentType] = useState('cash');
     const [markPresent, setMarkPresent] = useState(true);
     const [modalDiscount, setModalDiscount] = useState(0);
+    const [notes, setNotes] = useState('');
 
     if (!show || !data) return null;
 
     const { student, monthIndex } = data;
 
     const handleSubmit = () => {
-      onSubmit({ student, monthIndex, paymentMethod: paymentType, markPresent, discountAmt: modalDiscount });
+      onSubmit({ student, monthIndex, paymentMethod: paymentType, markPresent, discountAmt: modalDiscount, notes });
     };
 
     return (
@@ -350,6 +354,16 @@ const Fees = ({ onBack }) => {
             <input type="number" value={modalDiscount} onChange={(e) => setModalDiscount(parseFloat(e.target.value) || 0)} className="form-input" />
           </div>
           <div className="form-group">
+            <label>Notes</label>
+            <textarea 
+              value={notes} 
+              onChange={(e) => setNotes(e.target.value)} 
+              className="form-input" 
+              placeholder="Optional notes..."
+              rows="2"
+            />
+          </div>
+          <div className="form-group">
             <label style={{display: 'flex', alignItems: 'center', gap: '10px'}}>
               <input type="checkbox" checked={markPresent} onChange={(e) => setMarkPresent(e.target.checked)} />
               Mark as Present for Today
@@ -362,6 +376,30 @@ const Fees = ({ onBack }) => {
         </div>
       </div>
     );
+  };
+
+  const getYearlyStats = () => {
+    let totalPaid = 0;
+    let totalUnpaid = 0;
+    let totalCollected = 0;
+    let totalExpected = 0;
+
+    filteredStudents.forEach(student => {
+      monthNames.forEach((_, monthIndex) => {
+        const isPaid = getFeeStatus(student, monthIndex);
+        const feeAmount = student.monthlyFees || defaultFee;
+        
+        if (isPaid) {
+          totalPaid++;
+          totalCollected += feeAmount;
+        } else {
+          totalUnpaid++;
+        }
+        totalExpected += feeAmount;
+      });
+    });
+
+    return { totalPaid, totalUnpaid, totalCollected, totalExpected };
   };
 
   const { totalPaid, totalUnpaid, totalCollected, totalExpected } = getYearlyStats();
@@ -397,32 +435,14 @@ const Fees = ({ onBack }) => {
                 <option key={year} value={year}>{year}</option>
               ))}
             </select>
+            <button 
+              className={`btn ${showHistory ? 'btn-primary' : 'btn-secondary'}`}
+              onClick={() => setShowHistory(!showHistory)}
+            >
+              {showHistory ? 'Show Fees Table' : 'View Payment History'}
+            </button>
           </div>
           
-          <div className="flex gap-2 mb-3" style={{flexWrap: 'wrap'}}>
-            <select value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)} className="form-input">
-              <option value="cash">💵 Cash</option>
-              <option value="online">💳 Online</option>
-              <option value="card">💳 Card</option>
-              <option value="upi">📱 UPI</option>
-            </select>
-            <input
-              type="number"
-              placeholder="Discount ₹"
-              value={discount}
-              onChange={(e) => setDiscount(parseFloat(e.target.value) || 0)}
-              className="form-input"
-              style={{width: '120px'}}
-            />
-            <button onClick={bulkMarkPaid} disabled={selectedStudents.length === 0} className="btn btn-success">
-              💰 Mark Selected Paid ({selectedStudents.length})
-            </button>
-            <button onClick={exportToCSV} className="btn btn-primary">📊 Export CSV</button>
-            <button onClick={() => setShowHistory(!showHistory)} className="btn btn-secondary">
-              📋 {showHistory ? 'Hide' : 'Show'} History
-            </button>
-          </div>
-
           <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 'var(--spacing-md)', marginBottom: 'var(--spacing-lg)'}}>
             <div className="status-success" style={{padding: 'var(--spacing-sm)', textAlign: 'center'}}>
               <div style={{fontSize: '18px', fontWeight: '600'}}>✅ {totalPaid}</div>
@@ -440,10 +460,6 @@ const Fees = ({ onBack }) => {
               <div style={{fontSize: '18px', fontWeight: '600'}}>₹{totalExpected}</div>
               <div style={{fontSize: '11px'}}>Expected</div>
             </div>
-            <div className="status-error" style={{padding: 'var(--spacing-sm)', textAlign: 'center'}}>
-              <div style={{fontSize: '18px', fontWeight: '600'}}>⏰ {filteredStudents.filter(isOverdue).length}</div>
-              <div style={{fontSize: '11px'}}>Overdue</div>
-            </div>
           </div>
         </div>
 
@@ -454,60 +470,61 @@ const Fees = ({ onBack }) => {
           onSubmit={handleFeeAndAttendanceUpdate} 
         />
 
-        {showHistory && (
+        <ReceiptModal
+          show={!!showReceipt}
+          onClose={() => setShowReceipt(null)}
+          data={showReceipt}
+        />
+
+        {showHistory ? (
           <div className="card">
-            <h3>💳 Recent Payments</h3>
-            <div style={{maxHeight: '200px', overflowY: 'auto'}}>
-              {paymentHistory.slice(0, 10).map((payment, i) => (
-                <div key={i} style={{padding: '8px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between'}}>
-                  <span>{payment.student_name} - {payment.month} {payment.year}</span>
-                  <span>₹{payment.amount} ({payment.payment_method})</span>
-                </div>
-              ))}
+            <div className="table-container">
+              <table className="table">
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Student</th>
+                    <th>Amount</th>
+                    <th>Month/Year</th>
+                    <th>Method</th>
+                    <th>Notes</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {paymentHistory.map(payment => (
+                    <tr key={payment.id}>
+                      <td>{new Date(payment.payment_date).toLocaleDateString()}</td>
+                      <td>{payment.firstName} {payment.lastName}</td>
+                      <td>₹{payment.amount}</td>
+                      <td>{payment.month} {payment.year}</td>
+                      <td>{payment.payment_method}</td>
+                      <td>{payment.notes}</td>
+                      <td>
+                        <button 
+                          onClick={() => setShowReceipt(payment)}
+                          className="btn btn-sm btn-secondary"
+                        >
+                          📄 Receipt
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                  {paymentHistory.length === 0 && (
+                    <tr>
+                      <td colSpan="7" className="text-center">No payment history found</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
             </div>
           </div>
-        )}
-
-        {showReceipt && (
-          <div style={{position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
-            <div className="card" style={{maxWidth: '400px', margin: '20px'}}>
-              <h3>🧾 Payment Receipt</h3>
-              <div style={{padding: '20px', backgroundColor: 'var(--bg-secondary)', borderRadius: '8px'}}>
-                <p><strong>Receipt No:</strong> {showReceipt.receiptNo}</p>
-                <p><strong>Student:</strong> {showReceipt.studentName}</p>
-                <p><strong>Period:</strong> {showReceipt.month} {showReceipt.year}</p>
-                <p><strong>Base Fee:</strong> ₹{showReceipt.baseFee}</p>
-                {showReceipt.discount > 0 && <p><strong>Discount:</strong> -₹{showReceipt.discount}</p>}
-                <p><strong>Final Amount:</strong> ₹{showReceipt.finalAmount}</p>
-                <p><strong>Payment Method:</strong> {showReceipt.paymentMethod}</p>
-                <p><strong>Date:</strong> {showReceipt.date}</p>
-              </div>
-              <div className="flex gap-2 mt-3">
-                <button onClick={() => window.print()} className="btn btn-primary">🖨️ Print</button>
-                <button onClick={() => setShowReceipt(null)} className="btn btn-secondary">Close</button>
-              </div>
-            </div>
-          </div>
-        )}
-
+        ) : (
         <div className="card">
           <div className="table-container">
             <table className="table">
               <thead>
                 <tr>
-                  <th>
-                    <input
-                      type="checkbox"
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          setSelectedStudents(filteredStudents.map(s => s.id));
-                        } else {
-                          setSelectedStudents([]);
-                        }
-                      }}
-                      checked={selectedStudents.length === filteredStudents.length && filteredStudents.length > 0}
-                    />
-                  </th>
                   <th>Name</th>
                   <th>Belt</th>
                   <th>Fees</th>
@@ -520,106 +537,93 @@ const Fees = ({ onBack }) => {
                 </tr>
               </thead>
               <tbody>
-                {filteredStudents.map((student) => {
-                  const feeStatus = getFeeStatus(student, new Date().getMonth());
-                  return (
-                    <tr key={student.id} className={isOverdue(student) ? 'row-overdue' : ''}>
-                      <td>
-                        <input
-                          type="checkbox"
-                          checked={selectedStudents.includes(student.id)}
-                          onChange={() => {
-                            setSelectedStudents(prev => 
-                              prev.includes(student.id) ? prev.filter(id => id !== student.id) : [...prev, student.id]
-                            );
-                          }}
-                        />
-                      </td>
-                      <td className="names">
-                        {student.firstName} {student.lastName}
-                      </td>
-                      <td>
-                        <span style={{display: 'flex', alignItems: 'center', gap: '5px'}}>
-                          {getBeltEmoji(student.beltColor)}
-                          <span style={{fontSize: '12px', color: 'var(--text-secondary)'}}>
-                            {(student.beltColor || 'white').charAt(0).toUpperCase() + (student.beltColor || 'white').slice(1)}
-                          </span>
+                {filteredStudents.map((student) => (
+                  <tr key={student.id} className={isOverdue(student) ? 'row-overdue' : ''}>
+                    <td className="names">
+                      {student.firstName} {student.lastName}
+                    </td>
+                    <td>
+                      <span style={{display: 'flex', alignItems: 'center', gap: '5px'}}>
+                        {getBeltEmoji(student.beltColor)}
+                        <span style={{fontSize: '12px', color: 'var(--text-secondary)'}}>
+                          {(student.beltColor || 'white').charAt(0).toUpperCase() + (student.beltColor || 'white').slice(1)}
                         </span>
-                      </td>
-                      <td>
-                        {editingId === student.id ? (
-                          <input
-                            type="number"
-                            value={feeAmount}
-                            onChange={(e) => setFeeAmount(e.target.value)}
-                            onKeyPress={(e) => {
-                              if (e.key === 'Enter') {
-                                updateFeeAmount(student.id);
-                              }
-                            }}
-                            placeholder="Amount..."
-                            className="form-input"
-                            style={{margin: 0, width: '80px', fontSize: '12px'}}
-                            autoFocus
-                          />
-                        ) : (
-                          <span style={{fontWeight: '600', fontSize: '12px'}}>
-                            ₹{student.monthlyFees || defaultFee}
-                          </span>
-                        )} 
-                      </td>
-                      {monthNames.map((_, monthIndex) => {
-                        const paymentStatus = getFeeStatus(student, monthIndex);
-                        const paymentDate = formatPaymentDate(paymentStatus);
-                        
-                        return (
-                          <td key={monthIndex} className="text-center">
-                            <div style={{display: 'flex', flexDirection: 'column', gap: '2px', alignItems: 'center'}}>
-                              <button
-                                onClick={() => toggleFeeStatus(student.id, monthIndex)}
-                                className={`btn ${paymentStatus ? 'btn-success' : 'btn-danger'} hover-lift`}
-                                style={{fontSize: '10px', padding: '2px 6px', minWidth: '40px'}}
-                              >
-                                {paymentStatus ? '✅' : '❌'}
-                              </button>
-                              {paymentDate && (
-                                <span style={{fontSize: '9px', color: 'var(--success)', fontWeight: '500'}}>
-                                  {paymentDate}
-                                </span>
-                              )}
-                            </div>
-                          </td>
-                        );
-                      })}
-                      <td className="text-center">
-                        {editingId === student.id ? (
-                          <button
-                            onClick={() => updateFeeAmount(student.id)}
-                            className="btn btn-success hover-lift"
-                            style={{fontSize: '10px', padding: '4px 8px'}}
-                          >
-                            ✅
-                          </button>
-                        ) : (
-                          <button
-                            onClick={() => {
-                              setEditingId(student.id);
-                              setFeeAmount(student.monthlyFees || defaultFee);
-                            }}
-                            className="btn btn-primary hover-lift"
-                            style={{fontSize: '10px', padding: '4px 8px'}}
-                          >
-                            ✏️
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
+                      </span>
+                    </td>
+                    <td>
+                      {editingId === student.id ? (
+                        <input
+                          type="number"
+                          value={feeAmount}
+                          onChange={(e) => setFeeAmount(e.target.value)}
+                          onKeyPress={(e) => {
+                            if (e.key === 'Enter') {
+                              updateFeeAmount(student.id);
+                            }
+                          }}
+                          placeholder="Amount..."
+                          className="form-input"
+                          style={{margin: 0, width: '80px', fontSize: '12px'}}
+                          autoFocus
+                        />
+                      ) : (
+                        <span style={{fontWeight: '600', fontSize: '12px'}}>
+                          ₹{student.monthlyFees || defaultFee}
+                        </span>
+                      )} 
+                    </td>
+                    {monthNames.map((_, monthIndex) => {
+                      const paymentStatus = getFeeStatus(student, monthIndex);
+                      const paymentDate = formatPaymentDate(paymentStatus);
+                      
+                      return (
+                        <td key={monthIndex} className="text-center">
+                          <div style={{display: 'flex', flexDirection: 'column', gap: '2px', alignItems: 'center'}}>
+                            <button
+                              onClick={() => toggleFeeStatus(student.id, monthIndex)}
+                              className={`btn ${paymentStatus ? 'btn-success' : 'btn-danger'} hover-lift`}
+                              style={{fontSize: '10px', padding: '2px 6px', minWidth: '40px'}}
+                            >
+                              {paymentStatus ? '✅' : '❌'}
+                            </button>
+                            {paymentDate && (
+                              <span style={{fontSize: '9px', color: 'var(--success)', fontWeight: '500'}}>
+                                {paymentDate}
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                      );
+                    })}
+                    <td className="text-center">
+                      {editingId === student.id ? (
+                        <button
+                          onClick={() => updateFeeAmount(student.id)}
+                          className="btn btn-success hover-lift"
+                          style={{fontSize: '10px', padding: '4px 8px'}}
+                        >
+                          ✅
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => {
+                            setEditingId(student.id);
+                            setFeeAmount(student.monthlyFees || defaultFee);
+                          }}
+                          className="btn btn-primary hover-lift"
+                          style={{fontSize: '10px', padding: '4px 8px'}}
+                        >
+                          ✏️
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
         </div>
+        )}
       </div>
     </div>
   );

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { API_BASE_URL } from '../config';
 
 const PinLogin = ({ onLogin }) => {
   const [pin, setPin] = useState('');
@@ -16,26 +17,40 @@ const PinLogin = ({ onLogin }) => {
   };
 
   const handleSubmit = async () => {
+    if (pin.length !== 4) {
+      setError('Please enter a 4-digit PIN');
+      return;
+    }
+
     try {
-      const response = await fetch(`${window.location.protocol}//${window.location.hostname}:3001/pin`);
-      const data = await response.json();
+      // Try to authenticate with server
+      const response = await fetch(`${API_BASE_URL}/pin-login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ pin })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          localStorage.setItem('isLoggedIn', 'true');
+          onLogin();
+          return;
+        }
+      }
       
-      if (pin === data.pin) {
-        localStorage.setItem('isLoggedIn', 'true');
-        onLogin();
-      } else {
-        setError('Invalid PIN');
-        setPin('');
-      }
+      // If server response indicates invalid PIN
+      const errorData = await response.json().catch(() => ({}));
+      setError(errorData.message || 'Invalid PIN');
+      setPin('');
+      
     } catch (e) {
-      // Fallback to default PIN if server not available
-      if (pin === '1234') {
-        localStorage.setItem('isLoggedIn', 'true');
-        onLogin();
-      } else {
-        setError('Invalid PIN (server offline)');
-        setPin('');
-      }
+      // Server is offline - show clear error message
+      setError('Server is offline. Please start the server first.');
+      setPin('');
+      console.error('Server connection failed:', e);
     }
   };
 
@@ -56,18 +71,12 @@ const PinLogin = ({ onLogin }) => {
   }, [pin]);
 
   return (
-    <div className="flex justify-center items-center" style={{
-      minHeight: '100vh',
-      background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 50%, #cbd5e1 100%)'
-    }}>
+    <div className="app-container" style={{ justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
       <div className="card hover-lift" style={{
-        width: '95%',
+        width: '100%',
         maxWidth: '380px',
         textAlign: 'center',
-        padding: 'var(--spacing-2xl)',
-        background: 'var(--bg-card)',
-        boxShadow: 'var(--shadow-xl)',
-        borderRadius: 'var(--radius-lg)'
+        padding: 'var(--spacing-2xl)'
       }}>
         <div style={{ marginBottom: 'var(--spacing-2xl)' }}>
           <span className="karate-emoji" style={{ fontSize: '56px', display: 'block', marginBottom: 'var(--spacing-md)' }}>🥋</span>
@@ -109,6 +118,11 @@ const PinLogin = ({ onLogin }) => {
             fontWeight: '500'
           }}>
             ⚠️ {error}
+            {error.includes('offline') && (
+              <div style={{ marginTop: '8px', fontSize: '12px', color: 'var(--text-secondary)' }}>
+                Run: <code>node server.js</code> in terminal
+              </div>
+            )}
           </div>
         )}
 

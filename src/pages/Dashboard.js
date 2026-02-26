@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { API_BASE_URL } from '../config';
 
 const Dashboard = ({ onBack }) => {
   const [stats, setStats] = useState({
@@ -10,21 +11,26 @@ const Dashboard = ({ onBack }) => {
   const [recentActivity, setRecentActivity] = useState([]);
 
   useEffect(() => {
+    const user = JSON.parse(localStorage.getItem('user'));
+    const userId = user ? user.id : null;
+
     // Fetch dashboard data
     Promise.all([
-      fetch(`${window.location.protocol}//${window.location.hostname}:3001/students`),
-      fetch(`${window.location.protocol}//${window.location.hostname}:3001/absent-students`)
+      fetch(`${API_BASE_URL}/students?userId=${userId}`),
+      fetch(`${API_BASE_URL}/absent-students?userId=${userId}`)
     ])
     .then(([studentsRes, absentRes]) => Promise.all([studentsRes.json(), absentRes.json()]))
     .then(([students, absentStudents]) => {
+      const studentList = Array.isArray(students) ? students : [];
+      const absentList = Array.isArray(absentStudents) ? absentStudents : [];
       const today = new Date().toISOString().split('T')[0];
-      const todayAbsent = absentStudents.filter(s => s.absent_date === today);
+      const todayAbsent = absentList.filter(s => s.absent_date === today);
       
       setStats({
-        totalStudents: students.length,
-        presentToday: students.length - todayAbsent.length,
+        totalStudents: studentList.length,
+        presentToday: studentList.length - todayAbsent.length,
         absentToday: todayAbsent.length,
-        attendanceRate: students.length > 0 ? ((students.length - todayAbsent.length) / students.length * 100).toFixed(1) : 0
+        attendanceRate: studentList.length > 0 ? ((studentList.length - todayAbsent.length) / studentList.length * 100).toFixed(1) : 0
       });
       
       setRecentActivity(absentStudents.slice(-5).reverse());

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { API_BASE_URL } from '../config';
 
 const AttendanceView = ({ onBack }) => {
   const goBack = () => {
@@ -21,9 +22,19 @@ const AttendanceView = ({ onBack }) => {
 
   // Load students from database
   useEffect(() => {
-    fetch(`${window.location.protocol}//${window.location.hostname}:3001/students`)
+    const user = JSON.parse(localStorage.getItem('user'));
+    const userId = user ? user.id : null;
+
+    fetch(`${API_BASE_URL}/students?userId=${userId}`)
       .then(res => res.json())
-      .then(data => setStudents(data))
+      .then(data => {
+        if (Array.isArray(data)) {
+          setStudents(data);
+        } else {
+          console.error("API error:", data);
+          setStudents([]);
+        }
+      })
       .catch(e => console.error("Could not load data", e));
   }, []);
 
@@ -165,7 +176,7 @@ const AttendanceView = ({ onBack }) => {
                             value={student.beltColor || 'white'}
                             onChange={(e) => {
                               const updatedStudent = {...student, beltColor: e.target.value};
-                              fetch(`${window.location.protocol}//${window.location.hostname}:3001/students/${student.id}`, {
+                              fetch(`${API_BASE_URL}/students/${student.id}`, {
                                 method: 'PUT',
                                 headers: { 'Content-Type': 'application/json' },
                                 body: JSON.stringify(updatedStudent)
@@ -252,7 +263,7 @@ const AttendanceView = ({ onBack }) => {
                     onClick={async () => {
                       if (window.confirm(`Mark ${selectedStudent.firstName} ${selectedStudent.lastName} as inactive?`)) {
                         try {
-                          await fetch(`${window.location.protocol}//${window.location.hostname}:3001/students/${selectedStudent.id}`, {
+                          await fetch(`${API_BASE_URL}/students/${selectedStudent.id}`, {
                             method: 'DELETE'
                           });
                           setStudents(prev => prev.filter(s => s.id !== selectedStudent.id));
@@ -345,7 +356,7 @@ const AttendanceView = ({ onBack }) => {
                             attendance: selectedStudent.attendance
                           };
 
-                          const response = await fetch(`${window.location.protocol}//${window.location.hostname}:3001/students/${selectedStudent.id}`, {
+                          const response = await fetch(`${API_BASE_URL}/students/${selectedStudent.id}`, {
                             method: 'PUT',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify(updatedStudent)

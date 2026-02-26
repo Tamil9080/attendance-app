@@ -1,27 +1,50 @@
 import React, { useState, useEffect } from 'react';
+import { API_BASE_URL } from '../config';
 
 const InactiveStudents = ({ onBack }) => {
   const [inactiveStudents, setInactiveStudents] = useState([]);
 
-  // Load inactive students
   useEffect(() => {
-    fetch(`${window.location.protocol}//${window.location.hostname}:3001/inactive-students`)
-      .then(res => res.json())
-      .then(data => setInactiveStudents(data))
-      .catch(e => console.error("Could not load inactive students", e));
+    const user = JSON.parse(localStorage.getItem('user'));
+    const userId = user ? user.id : null;
+
+    console.log('Loading inactive students from:', `${API_BASE_URL}/inactive-students?userId=${userId}`);
+    fetch(`${API_BASE_URL}/inactive-students?userId=${userId}`)
+      .then(res => {
+        console.log('Inactive students response status:', res.status);
+        return res.json();
+      })
+      .then(data => {
+        console.log('Inactive students data:', data);
+        setInactiveStudents(data || []);
+      })
+      .catch(e => {
+        console.error("Could not load inactive students", e);
+        setInactiveStudents([]);
+      });
   }, []);
 
   const reactivateStudent = async (studentId, studentName) => {
     if (window.confirm(`Reactivate ${studentName}?`)) {
       try {
-        await fetch(`${window.location.protocol}//${window.location.hostname}:3001/reactivate/${studentId}`, {
+        console.log('Reactivating student:', studentId);
+        const response = await fetch(`${API_BASE_URL}/reactivate/${studentId}`, {
           method: 'POST'
         });
         
-        setInactiveStudents(prev => prev.filter(s => s.id !== studentId));
-        alert('Student reactivated successfully!');
+        console.log('Reactivate response status:', response.status);
+        
+        if (response.ok) {
+          setInactiveStudents(prev => prev.filter(s => s.id !== studentId));
+          alert('Student reactivated successfully!');
+        } else {
+          const errorData = await response.json();
+          console.error('Reactivate error:', errorData);
+          alert('Error reactivating student: ' + (errorData.error || 'Unknown error'));
+        }
       } catch (e) {
         console.error('Error reactivating student:', e);
+        alert('Error reactivating student: ' + e.message);
       }
     }
   };
@@ -29,84 +52,101 @@ const InactiveStudents = ({ onBack }) => {
   const removeStudent = async (studentId, studentName) => {
     if (window.confirm(`Permanently delete ${studentName}? This cannot be undone.`)) {
       try {
-        const response = await fetch(`${window.location.protocol}//${window.location.hostname}:3001/inactive-students/${studentId}`, {
+        console.log('Deleting inactive student:', studentId);
+        const response = await fetch(`${API_BASE_URL}/inactive-students/${studentId}`, {
           method: 'DELETE'
         });
+        
+        console.log('Delete response status:', response.status);
         
         if (response.ok) {
           setInactiveStudents(prev => prev.filter(s => s.id !== studentId));
           alert('Student permanently deleted!');
         } else {
-          alert('Error: Could not delete student');
+          const errorData = await response.json();
+          console.error('Delete error:', errorData);
+          alert('Error: Could not delete student - ' + (errorData.error || 'Unknown error'));
         }
       } catch (e) {
-        // Fallback: remove from local state if server is not running
-        setInactiveStudents(prev => prev.filter(s => s.id !== studentId));
-        alert('Student removed from list (server not running)');
+        console.error('Error deleting student:', e);
+        alert('Error deleting student: ' + e.message);
       }
     }
   };
 
   return (
-    <div style={{padding: '20px', fontFamily: 'Arial, sans-serif'}}>
-      <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px'}}>
-        <button
-          onClick={onBack}
-          style={{padding: '8px 16px', backgroundColor: '#6b7280', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer'}}
-        >
-          Back to Main
-        </button>
-        <h1 style={{margin: 0}}>Stopped Students</h1>
-        <div></div>
-      </div>
+    <div className="app-container">
+      <div className="app-content fade-in">
+        <div className="card-header">
+          <button onClick={onBack} className="btn btn-secondary hover-lift">
+            ← Back to Main
+          </button>
+          <h1 className="card-title gradient-text">⏸️ Inactive Students ({inactiveStudents.length})</h1>
+          <div></div>
+        </div>
 
-      {inactiveStudents.length === 0 ? (
-        <p style={{textAlign: 'center', fontSize: '18px', color: '#666'}}>
-          No stopped students found.
-        </p>
-      ) : (
-        <table style={{width: '100%', borderCollapse: 'collapse', border: '1px solid #ddd'}}>
-          <thead>
-            <tr style={{backgroundColor: '#dc2626', color: 'white'}}>
-              <th style={{padding: '12px', border: '1px solid #ddd', textAlign: 'left'}}>Name</th>
-              <th style={{padding: '12px', border: '1px solid #ddd', textAlign: 'left'}}>Phone</th>
-              <th style={{padding: '12px', border: '1px solid #ddd', textAlign: 'left'}}>Gender</th>
-              <th style={{padding: '12px', border: '1px solid #ddd', textAlign: 'center'}}>Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            {inactiveStudents.map((student) => (
-              <tr key={student.id}>
-                <td style={{padding: '12px', border: '1px solid #ddd'}}>
-                  {student.firstName} {student.lastName}
-                </td>
-                <td style={{padding: '12px', border: '1px solid #ddd'}}>
-                  {student.phoneNumber || 'N/A'}
-                </td>
-                <td style={{padding: '12px', border: '1px solid #ddd'}}>
-                  {student.gender || 'N/A'}
-                </td>
-                <td style={{padding: '12px', border: '1px solid #ddd', textAlign: 'center'}}>
-                  <div style={{display: 'flex', gap: '5px', justifyContent: 'center'}}>
-                    <button
-                      onClick={() => reactivateStudent(student.id, `${student.firstName} ${student.lastName}`)}
-                      style={{padding: '6px 12px', backgroundColor: '#059669', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer'}}
-                    >
-                      Reactivate
-                    </button>
-                    <button
-                      onClick={() => removeStudent(student.id, `${student.firstName} ${student.lastName}`)}
-                      style={{padding: '6px 12px', backgroundColor: '#dc2626', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer'}}
-                    >
-                      Delete
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
+        <div className="card">
+          {inactiveStudents.length === 0 ? (
+            <p className="text-center no-students">
+              No inactive students found.
+            </p>
+          ) : (
+            <div className="table-container">
+              <table className="table">
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Phone</th>
+                    <th>Gender</th>
+                    <th>Belt</th>
+                    <th>Moved Date</th>
+                    <th className="text-center">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {inactiveStudents.map((student) => (
+                    <tr key={student.id}>
+                      <td className="names">
+                        {student.firstName} {student.lastName}
+                      </td>
+                      <td>
+                        {student.phoneNumber || 'N/A'}
+                      </td>
+                      <td>
+                        {student.gender || 'N/A'}
+                      </td>
+                      <td>
+                        {student.beltColor || 'white'}
+                      </td>
+                      <td>
+                        {student.moved_date ? new Date(student.moved_date).toLocaleDateString() : 'N/A'}
+                      </td>
+                      <td className="text-center">
+                        <div className="flex gap-1 justify-center">
+                          <button
+                            onClick={() => reactivateStudent(student.id, `${student.firstName} ${student.lastName}`)}
+                            className="btn btn-success hover-lift"
+                            style={{fontSize: '12px', padding: '4px 8px'}}
+                          >
+                            ↩️ Reactivate
+                          </button>
+                          <button
+                            onClick={() => removeStudent(student.id, `${student.firstName} ${student.lastName}`)}
+                            className="btn btn-danger hover-lift"
+                            style={{fontSize: '12px', padding: '4px 8px'}}
+                          >
+                            🗑️ Delete
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 };

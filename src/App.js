@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import './App.css';
+import Login from './pages/Login';
+import Register from './pages/Register';
 import AttendanceView from './pages/AttendanceView';
 import AddStudent from './pages/AddStudent';
 import InactiveStudents from './pages/InactiveStudents';
 import AbsentStudents from './pages/AbsentStudents';
-import PinLogin from './pages/PinLogin';
 import Settings from './pages/Settings';
 import Dashboard from './pages/Dashboard';
 import BulkOperations from './pages/BulkOperations';
@@ -12,12 +14,12 @@ import Analytics from './pages/Analytics';
 import Notifications from './pages/Notifications';
 import Fees from './pages/Fees';
 import AttendanceControl from './components/AttendanceControl';
+import { API_BASE_URL } from './config';
 
 const App = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(() => {
-    // Clear login status on app start
-    localStorage.removeItem('isLoggedIn');
-    return false;
+    // Check login status on app start
+    return localStorage.getItem('isLoggedIn') === 'true';
   });
   const [students, setStudents] = useState([]);
   const [isDarkTheme, setIsDarkTheme] = useState(() => {
@@ -76,14 +78,28 @@ const App = () => {
 
   // Load students from database on initial render
   useEffect(() => {
-    fetch(`${window.location.protocol}//${window.location.hostname}:3001/students`)
+    if (!isLoggedIn) return;
+
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    const userId = user.id;
+
+    fetch(`${API_BASE_URL}/students?userId=${userId}`)
       .then(res => res.json())
-      .then(data => setStudents(data))
+      .then(data => {
+        if (Array.isArray(data)) {
+          console.log('Loaded students from database:', data);
+          setStudents(data);
+        } else {
+          console.error('API returned an error or non-array:', data);
+          setStudents([]);
+          showMessage(data.error || "Error loading data from database.", "error");
+        }
+      })
       .catch(e => {
         console.error("Could not load data from database", e);
         showMessage("Error loading data from database.");
       });
-  }, []);
+  }, [isLoggedIn]);
 
   // Enhanced message system
   const showMessage = (text, type = 'success') => {
@@ -125,7 +141,7 @@ const App = () => {
     const monthKey = getCurrentMonthKey();
     const student = students.find(s => s.id === studentId);
     if (student) {
-      const monthAttendance = student.attendance[monthKey] || {};
+      const monthAttendance = (student.attendance && student.attendance[monthKey]) || {};
       const updatedStudent = {
         ...student,
         attendance: {
@@ -142,7 +158,10 @@ const App = () => {
       
       // Save to database
       try {
-        const response = await fetch(`${window.location.protocol}//${window.location.hostname}:3001/students/${studentId}`, {
+        console.log('Saving attendance for student', studentId, 'day', day, 'status', newStatus);
+        console.log('Updated student data:', updatedStudent);
+        
+        const response = await fetch(`${API_BASE_URL}/students/${studentId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(updatedStudent)
@@ -164,7 +183,7 @@ const App = () => {
             reason: ''
           };
           
-          fetch(`${window.location.protocol}//${window.location.hostname}:3001/absent-students`, {
+          fetch(`${API_BASE_URL}/absent-students`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(absentRecord)
@@ -249,7 +268,7 @@ const App = () => {
 
   const calculateAttendanceSummary = (student) => {
     const monthKey = getCurrentMonthKey();
-    const attendanceRecords = student.attendance[monthKey] || {};
+    const attendanceRecords = (student.attendance && student.attendance[monthKey]) || {};
     let presentCount = 0;
     let absentCount = 0;
     for (const day in attendanceRecords) {
@@ -273,7 +292,7 @@ const App = () => {
   if (currentView === 'add') {
     return <AddStudent onBack={() => setCurrentView('main')} onStudentAdded={() => {
       // Reload from database
-      fetch(`${window.location.protocol}//${window.location.hostname}:3001/students`)
+      fetch(`${API_BASE_URL}/students`)
         .then(res => res.json())
         .then(data => setStudents(data))
         .catch(e => console.error("Could not reload students", e));
@@ -307,9 +326,15 @@ const App = () => {
     return <AbsentStudents onBack={() => setCurrentView('main')} />;
   }
 
-  // Show PIN login if not logged in
+  // Show Login/Register if not logged in
   if (!isLoggedIn) {
-    return <PinLogin onLogin={() => setIsLoggedIn(true)} />;
+    return (
+      <Routes>
+        <Route path="/login" element={<Login onLogin={() => setIsLoggedIn(true)} />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="*" element={<Navigate to="/login" />} />
+      </Routes>
+    );
   }
 
   return (
@@ -407,30 +432,46 @@ const App = () => {
               </button>
             </div>
           </div>
-          <div className="flex gap-3">
-            <div className="form-group" style={{flex: 1}}>
-              <label className="form-label">Month</label>
-              <select
-                value={selectedMonth}
-                onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
-                className="form-input"
-              >
-                {monthNames.map((month, index) => (
-                  <option key={index} value={index}>{month}</option>
-                ))}
-              </select>
+          <div className="flex flex-col gap-3">
+            <div className="flex gap-3">
+              <div className="form-group" style={{flex: 1}}>
+                <label className="form-label">Month</label>
+                <select
+                  value={selectedMonth}
+                  onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
+                  className="form-input"
+                >
+                  {monthNames.map((month, index) => (
+                    <option key={index} value={index}>{month}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="form-group" style={{flex: 1}}>
+                <label className="form-label">Year</label>
+                <select
+                  value={selectedYear}
+                  onChange={(e) => setSelectedYear(parseInt(e.target.value))}
+                  className="form-input"
+                >
+                  {getYearOptions().map((year) => (
+                    <option key={year} value={year}>{year}</option>
+                  ))}
+                </select>
+              </div>
             </div>
-            <div className="form-group" style={{flex: 1}}>
-              <label className="form-label">Year</label>
-              <select
-                value={selectedYear}
-                onChange={(e) => setSelectedYear(parseInt(e.target.value))}
-                className="form-input"
-              >
-                {getYearOptions().map((year) => (
-                  <option key={year} value={year}>{year}</option>
-                ))}
-              </select>
+            <div className="form-group">
+              <label className="form-label">Search Students</label>
+              <div style={{position: 'relative'}}>
+                <input
+                  type="text"
+                  className="form-input"
+                  placeholder="Search by name..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  style={{paddingLeft: '35px'}}
+                />
+                <span style={{position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)'}}>🔍</span>
+              </div>
             </div>
           </div>
         </div>
@@ -478,7 +519,7 @@ const App = () => {
             <table className="table">
             <thead>
               <tr>
-                <th>Names ({students.length})</th>
+                <th>Names ({filteredStudents.length})</th>
                 {renderDays()}
                 <th className="center">
                   Total
@@ -488,14 +529,14 @@ const App = () => {
             </thead>
             <tbody>
 
-              {students.length === 0 && (
+              {filteredStudents.length === 0 && (
                 <tr>
                   <td colSpan={getSundaysInMonth().length + 2} className="no-students">
                     No students added yet.
                   </td>
                 </tr>
               )}
-              {students.sort((a, b) => {
+              {filteredStudents.sort((a, b) => {
                 // Sort by belt color order: White, Yellow, Orange, Green, Blue, Brown, Black
                 const beltOrder = ['white', 'yellow', 'orange', 'green', 'blue', 'brown', 'black'];
                 const aBelt = (a.beltColor || 'white').toLowerCase();
@@ -529,6 +570,33 @@ const App = () => {
                     ))}
                     <td className="center">
                       <span className="present">P: {presentCount}</span> / <span className="absent">A: {absentCount}</span>
+                      <div style={{marginTop: '5px'}}>
+                        <button
+                          onClick={async () => {
+                            if (window.confirm(`Move ${student.firstName} ${student.lastName} to inactive list?`)) {
+                              try {
+                                const response = await fetch(`${API_BASE_URL}/students/${student.id}`, {
+                                  method: 'DELETE'
+                                });
+                                if (response.ok) {
+                                  setStudents(prev => prev.filter(s => s.id !== student.id));
+                                  showMessage(`${student.firstName} moved to inactive list`);
+                                } else {
+                                  showMessage('Error moving student to inactive list', 'error');
+                                }
+                              } catch (e) {
+                                console.error('Error moving student:', e);
+                                showMessage('Error moving student to inactive list', 'error');
+                              }
+                            }
+                          }}
+                          className="btn btn-danger"
+                          style={{fontSize: '10px', padding: '2px 6px', marginTop: '2px'}}
+                          title="Move to inactive list"
+                        >
+                          🗑️
+                        </button>
+                      </div>
                     </td>
 
                   </tr>

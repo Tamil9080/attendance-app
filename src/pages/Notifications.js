@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { API_BASE_URL } from '../config';
 
 const Notifications = ({ onBack }) => {
   const [students, setStudents] = useState([]);
@@ -9,9 +10,18 @@ const Notifications = ({ onBack }) => {
   const [notifications, setNotifications] = useState([]);
 
   useEffect(() => {
-    fetch(`${window.location.protocol}//${window.location.hostname}:3001/students`)
+    const user = JSON.parse(localStorage.getItem('user'));
+    const userId = user ? user.id : null;
+
+    fetch(`${API_BASE_URL}/students?userId=${userId}`)
       .then(res => res.json())
-      .then(data => setStudents(data))
+      .then(data => {
+        if (Array.isArray(data)) {
+          setStudents(data);
+        } else {
+          setStudents([]);
+        }
+      })
       .catch(e => console.error('Error loading students:', e));
     
     // Load saved notifications from localStorage

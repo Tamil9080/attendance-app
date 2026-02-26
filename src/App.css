@@ -8,42 +8,48 @@
 }
 
 :root {
-  --primary: #10b981;
-  --primary-dark: #059669;
-  --primary-light: #34d399;
-  --secondary: #6b7280;
-  --secondary-light: #9ca3af;
-  --success: #10b981;
-  --success-light: #34d399;
-  --danger: #ef4444;
-  --danger-light: #f87171;
-  --warning: #f59e0b;
-  --warning-light: #fbbf24;
-  --info: #8b5cf6;
-  --info-light: #a78bfa;
+  /* Modern Indigo & Violet Theme */
+  --primary: #6366f1;       /* Indigo 500 */
+  --primary-dark: #4f46e5;  /* Indigo 600 */
+  --primary-light: #818cf8; /* Indigo 400 */
   
-  --bg-primary: #0f172a;
-  --bg-secondary: #1e293b;
-  --bg-tertiary: #334155;
+  --secondary: #8b5cf6;     /* Violet 500 */
+  --secondary-light: #a78bfa; /* Violet 400 */
+  
+  --success: #10b981;       /* Emerald 500 */
+  --success-light: #34d399; /* Emerald 400 */
+  
+  --danger: #f43f5e;        /* Rose 500 */
+  --danger-light: #fb7185;  /* Rose 400 */
+  
+  --warning: #f59e0b;       /* Amber 500 */
+  --warning-light: #fbbf24; /* Amber 400 */
+  
+  --info: #0ea5e9;          /* Sky 500 */
+  --info-light: #38bdf8;    /* Sky 400 */
+  
+  --bg-primary: #0f172a;    /* Slate 900 */
+  --bg-secondary: #1e293b;  /* Slate 800 */
+  --bg-tertiary: #334155;   /* Slate 700 */
   --bg-card: #ffffff;
-  --bg-card-dark: #1f2937;
+  --bg-card-dark: #1e293b;
   --bg-overlay: rgba(15, 23, 42, 0.95);
   
-  --text-primary: #1f2937;
-  --text-secondary: #6b7280;
-  --text-tertiary: #9ca3af;
+  --text-primary: #1e293b;  /* Slate 800 */
+  --text-secondary: #64748b; /* Slate 500 */
+  --text-tertiary: #94a3b8; /* Slate 400 */
   --text-inverse: #ffffff;
-  --text-muted: #d1d5db;
+  --text-muted: #cbd5e1;    /* Slate 300 */
   
-  --border: #e5e7eb;
-  --border-dark: #374151;
-  --border-light: #f3f4f6;
+  --border: #e2e8f0;        /* Slate 200 */
+  --border-dark: #334155;   /* Slate 700 */
+  --border-light: #f1f5f9;  /* Slate 100 */
   
-  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-  --shadow-md: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-  --shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-  --shadow-xl: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  --shadow-sm: 0 1px 2px 0 rgba(99, 102, 241, 0.05);
+  --shadow: 0 4px 6px -1px rgba(99, 102, 241, 0.1), 0 2px 4px -1px rgba(99, 102, 241, 0.06);
+  --shadow-md: 0 10px 15px -3px rgba(99, 102, 241, 0.1), 0 4px 6px -2px rgba(99, 102, 241, 0.05);
+  --shadow-lg: 0 20px 25px -5px rgba(99, 102, 241, 0.1), 0 10px 10px -5px rgba(99, 102, 241, 0.04);
+  --shadow-xl: 0 25px 50px -12px rgba(99, 102, 241, 0.25);
   
   --radius-sm: 6px;
   --radius: 8px;
@@ -68,9 +74,9 @@
 body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   background: 
-    radial-gradient(circle at 20% 80%, rgba(59, 130, 246, 0.1) 0%, transparent 50%),
-    radial-gradient(circle at 80% 20%, rgba(16, 185, 129, 0.1) 0%, transparent 50%),
-    radial-gradient(circle at 40% 40%, rgba(6, 182, 212, 0.05) 0%, transparent 50%),
+    radial-gradient(circle at 20% 80%, rgba(99, 102, 241, 0.15) 0%, transparent 50%),
+    radial-gradient(circle at 80% 20%, rgba(139, 92, 246, 0.15) 0%, transparent 50%),
+    radial-gradient(circle at 40% 40%, rgba(14, 165, 233, 0.1) 0%, transparent 50%),
     linear-gradient(135deg, #f8fafc 0%, #e2e8f0 50%, #cbd5e1 100%);
   color: var(--text-primary);
   min-height: 100vh;
@@ -84,17 +90,17 @@ body {
 
 /* Dark Theme */
 body.dark-theme {
-  --bg-card: #1f2937;
-  --text-primary: #f9fafb;
-  --text-secondary: #d1d5db;
-  --text-tertiary: #9ca3af;
-  --border: #374151;
-  --border-light: #4b5563;
+  --bg-card: #1e293b;
+  --text-primary: #f8fafc;
+  --text-secondary: #cbd5e1;
+  --text-tertiary: #94a3b8;
+  --border: #334155;
+  --border-light: #475569;
   
   background: 
-    radial-gradient(circle at 20% 80%, rgba(59, 130, 246, 0.15) 0%, transparent 50%),
-    radial-gradient(circle at 80% 20%, rgba(16, 185, 129, 0.15) 0%, transparent 50%),
-    radial-gradient(circle at 40% 40%, rgba(6, 182, 212, 0.1) 0%, transparent 50%),
+    radial-gradient(circle at 20% 80%, rgba(99, 102, 241, 0.2) 0%, transparent 50%),
+    radial-gradient(circle at 80% 20%, rgba(139, 92, 246, 0.2) 0%, transparent 50%),
+    radial-gradient(circle at 40% 40%, rgba(14, 165, 233, 0.15) 0%, transparent 50%),
     linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
 }
 
@@ -183,6 +189,30 @@ body::before {
   margin: 0 !important;
   letter-spacing: -0.025em;
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.flex {
+  display: flex;
+}
+
+.flex-col {
+  flex-direction: column;
+}
+
+.items-center {
+  align-items: center;
+}
+
+.justify-between {
+  justify-content: space-between;
+}
+
+.gap-2 {
+  gap: calc(var(--spacing) * 2);
+}
+
+.gap-3 {
+  gap: calc(var(--spacing) * 3);
 }
 
 /* Card Styles */

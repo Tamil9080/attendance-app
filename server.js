@@ -1,451 +1,681 @@
+require('dotenv').config();
 const express = require('express');
-const mysql = require('mysql2');
 const cors = require('cors');
+const supabase = require('./supabaseClient');
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-// MySQL connection
-const db = mysql.createConnection({
-  host: 'localhost',
-  user: 'root',
-  password: 'NARUTO', // Enter your MySQL root password here
-  database: 'attendance_db'
-});
-
-// Connect to MySQL
-db.connect((err) => {
-  if (err) {
-    console.error('Database connection failed:', err);
-    return;
+// Helper to handle Supabase errors or return data
+const handleResponse = (res, { data, error }, successStatus = 200, successBody = null) => {
+  if (error) {
+    console.error('Supabase error:', error);
+    return res.status(500).json({ error: error.message });
   }
-  console.log('Connected to MySQL database');
-});
-
-// Create tables if they don't exist
-db.execute(`
-  CREATE TABLE IF NOT EXISTS students (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    firstName VARCHAR(255) NOT NULL,
-    lastName VARCHAR(255) NOT NULL,
-    phoneNumber VARCHAR(255),
-    gender VARCHAR(10),
-    fatherName VARCHAR(255),
-    address TEXT,
-    attendance JSON
-  )
-`);
-
-db.execute(`
-  CREATE TABLE IF NOT EXISTS inactive_students (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    original_id INT,
-    firstName VARCHAR(255) NOT NULL,
-    lastName VARCHAR(255) NOT NULL,
-    phoneNumber VARCHAR(255),
-    gender VARCHAR(10),
-    fatherName VARCHAR(255),
-    address TEXT,
-    attendance JSON,
-    moved_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-  )
-`);
-
-db.execute(`
-  CREATE TABLE IF NOT EXISTS fees (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    student_id INT NOT NULL,
-    amount DECIMAL(10, 2) NOT NULL,
-    date DATE NOT NULL,
-    status VARCHAR(20) DEFAULT 'pending',
-    FOREIGN KEY (student_id) REFERENCES students(id)
-  )
-`);
-
-db.execute(`
-  CREATE TABLE IF NOT EXISTS users (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    username VARCHAR(50) UNIQUE NOT NULL,
-    password VARCHAR(255) NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-  )
-`);
-
-db.execute(`
-  CREATE TABLE IF NOT EXISTS absent_students (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    student_id INT,
-    student_name VARCHAR(255),
-    phone_number VARCHAR(255),
-    absent_date DATE,
-    reason TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-  )
-`, (err) => {
-  if (err) {
-    console.error('Error creating absent_students table:', err);
-  } else {
-    console.log('absent_students table ready');
+  if (successBody) {
+    return res.status(successStatus).json(successBody);
   }
-});
+  return res.status(successStatus).json(data);
+};
 
-// Insert default admin user if not exists
-db.execute('SELECT COUNT(*) as count FROM users WHERE username = ?', ['admin'], (err, results) => {
-  if (!err && results[0].count === 0) {
-    db.execute('INSERT INTO users (username, password) VALUES (?, ?)', ['admin', 'admin123'], (err) => {
-      if (!err) console.log('Default admin user created');
-    });
-  }
-});
-
-// Add PIN column to users table
-db.execute('ALTER TABLE users ADD COLUMN pin VARCHAR(4) DEFAULT "1234"', (err) => {
-  if (err && !err.message.includes('Duplicate column')) {
-    console.error('Error adding pin column:', err);
-  }
-});
-
-// Add new columns if they don't exist (MySQL syntax)
-db.execute(`ALTER TABLE students ADD COLUMN gender VARCHAR(10)`, (err) => {
-  if (err && !err.message.includes('Duplicate column')) {
-    console.error('Error adding gender column:', err);
-  }
-});
-db.execute(`ALTER TABLE students ADD COLUMN fatherName VARCHAR(255)`, (err) => {
-  if (err && !err.message.includes('Duplicate column')) {
-    console.error('Error adding fatherName column:', err);
-  }
-});
-db.execute(`ALTER TABLE students ADD COLUMN address TEXT`, (err) => {
-  if (err && !err.message.includes('Duplicate column')) {
-    console.error('Error adding address column:', err);
-  }
-});
-db.execute(`ALTER TABLE students ADD COLUMN status VARCHAR(20) DEFAULT 'active'`, (err) => {
-  if (err && !err.message.includes('Duplicate column')) {
-    console.error('Error adding status column:', err);
-  }
-});
-db.execute(`ALTER TABLE students ADD COLUMN beltColor VARCHAR(20) DEFAULT 'white'`, (err) => {
-  if (err && !err.message.includes('Duplicate column')) {
-    console.error('Error adding beltColor column:', err);
-  }
-});
-
-// Get all students
-app.get('/students', (req, res) => {
-  const status = req.query.status || 'active';
-  const query = status === 'all' ? 'SELECT * FROM students' : 'SELECT * FROM students WHERE status = ?';
-  const params = status === 'all' ? [] : [status];
+// Auth routes
+app.post('/register', async (req, res) => {
+  const { email, password, phone_number, username, pin } = req.body;
   
-  db.execute(query, params, (err, results) => {
-    if (err) {
-      res.status(500).json({ error: err.message });
-      return;
+  if (!email || !password) {
+    return res.status(400).json({ error: 'Email and password are required' });
+  }
+
+  const { data, error } = await supabase
+    .from('users')
+    .insert([
+      { 
+        email, 
+        password, 
+        phone_number, 
+        username: username || email.split('@')[0], 
+        pin: pin || '1234' 
+      }
+    ])
+    .select();
+
+  if (error) {
+    if (error.code === '23505') { // Postgres unique violation code
+      return res.status(400).json({ error: 'Email already exists' });
     }
-    // Parse JSON attendance data and ensure all fields exist
-    const students = results.map(student => ({
-      ...student,
-      attendance: typeof student.attendance === 'string' ? JSON.parse(student.attendance) : student.attendance,
-      gender: student.gender || null,
-      fatherName: student.fatherName || null,
-      address: student.address || null,
-      beltColor: student.beltColor || 'white'
-    }));
-    res.json(students);
+    return res.status(500).json({ error: error.message });
+  }
+  
+  res.json({ success: true, userId: data[0].id, message: 'Registration successful' });
+});
+
+app.post('/login', async (req, res) => {
+  const { email, password } = req.body;
+  
+  // Try finding by email
+  let { data: users, error } = await supabase
+    .from('users')
+    .select('*')
+    .eq('email', email)
+    .eq('password', password);
+
+  if (error) return res.status(500).json({ error: error.message });
+
+  if (!users || users.length === 0) {
+    // Fallback for username login
+    const { data: usersByUsername, error: errorUsername } = await supabase
+        .from('users')
+        .select('*')
+        .eq('username', email)
+        .eq('password', password);
+        
+    if (errorUsername || !usersByUsername || usersByUsername.length === 0) {
+       return res.status(401).json({ success: false, message: 'Invalid email or password' });
+    }
+    users = usersByUsername;
+  }
+
+  const user = users[0];
+  res.json({ 
+    success: true, 
+    user: { 
+      id: user.id, 
+      email: user.email, 
+      username: user.username, 
+      phone_number: user.phone_number 
+    } 
   });
 });
 
-// Add new student
-app.post('/students', (req, res) => {
-  const { firstName, lastName, phoneNumber, gender, fatherName, address, beltColor, attendance } = req.body;
-  db.execute(
-    'INSERT INTO students (firstName, lastName, phoneNumber, gender, fatherName, address, beltColor, attendance, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-    [firstName, lastName, phoneNumber, gender, fatherName, address, beltColor || 'white', JSON.stringify(attendance), 'active'],
-    (err, results) => {
-      if (err) {
-        res.status(500).json({ error: err.message });
-        return;
-      }
-      res.json({ id: results.insertId, firstName, lastName, phoneNumber, gender, fatherName, address, beltColor, attendance });
+// Student routes
+app.get('/students', async (req, res) => {
+  const userId = req.query.userId;
+  
+  let query = supabase
+    .from('students')
+    .select('*')
+    .eq('status', 'active');
+
+  if (userId) {
+    query = query.or(`user_id.eq.${userId},user_id.is.null`);
+  }
+
+  const { data, error } = await query;
+
+  if (error) {
+    return res.status(500).json({ error: error.message });
+  }
+
+  const students = data.map(student => {
+    let attendance = student.attendance || {};
+    // Ensure attendance is an object
+    if (typeof attendance === 'string') {
+        try { attendance = JSON.parse(attendance); } catch(e) {}
     }
-  );
+    return { ...student, attendance };
+  });
+  
+  res.json(students);
 });
 
-// Update student
-app.put('/students/:id', (req, res) => {
+app.post('/students', async (req, res) => {
+  const { firstName, lastName, phoneNumber, gender, fatherName, address, beltColor, userId } = req.body;
+  
+  const { data, error } = await supabase
+    .from('students')
+    .insert([{
+      "firstName": firstName,
+      "lastName": lastName,
+      "phoneNumber": phoneNumber,
+      gender,
+      "fatherName": fatherName,
+      address,
+      "beltColor": beltColor || 'white',
+      attendance: {},
+      user_id: userId || null
+    }])
+    .select();
+
+  if (error) {
+    return res.status(500).json({ error: error.message });
+  }
+  res.json({ id: data[0].id, message: 'Student added successfully' });
+});
+
+app.put('/students/:id', async (req, res) => {
   const { id } = req.params;
   const { firstName, lastName, phoneNumber, gender, fatherName, address, beltColor, attendance, status } = req.body;
-  console.log('Updating student:', id, { firstName, lastName, phoneNumber, gender, fatherName, address, beltColor, attendance, status });
   
-  db.execute(
-    'UPDATE students SET firstName = ?, lastName = ?, phoneNumber = ?, gender = ?, fatherName = ?, address = ?, beltColor = ?, attendance = ?, status = ? WHERE id = ?',
-    [firstName, lastName, phoneNumber || null, gender || null, fatherName || null, address || null, beltColor || 'white', JSON.stringify(attendance || {}), status || 'active', id],
-    (err, results) => {
-      if (err) {
-        console.error('Update error:', err);
-        res.status(500).json({ error: err.message });
-        return;
-      }
-      console.log('Update results:', results);
-      if (results.affectedRows === 0) {
-        res.status(404).json({ error: 'Student not found' });
-        return;
-      }
-      res.json({ id, firstName, lastName, phoneNumber, gender, fatherName, address, beltColor, attendance, status });
-    }
-  );
+  const { error } = await supabase
+    .from('students')
+    .update({
+      "firstName": firstName,
+      "lastName": lastName,
+      "phoneNumber": phoneNumber,
+      gender,
+      "fatherName": fatherName,
+      address,
+      "beltColor": beltColor,
+      attendance: attendance || {},
+      status: status || 'active'
+    })
+    .eq('id', id);
+
+  if (error) {
+    return res.status(500).json({ error: error.message });
+  }
+  res.json({ message: 'Student updated successfully' });
 });
 
-// Move student to inactive table
-app.delete('/students/:id', (req, res) => {
+// Fees management routes
+app.post('/fees', async (req, res) => {
+  const { student_id, amount, month, year, payment_date, payment_method, notes, userId } = req.body;
+  
+  // Get student name
+  const { data: studentData } = await supabase
+    .from('students')
+    .select('"firstName", "lastName"')
+    .eq('id', student_id)
+    .single();
+    
+  const student_name = studentData 
+    ? `${studentData.firstName} ${studentData.lastName}` 
+    : 'Unknown Student';
+
+  const { data, error } = await supabase
+    .from('fees')
+    .insert([{
+      student_id,
+      student_name,
+      amount,
+      month,
+      year,
+      payment_date,
+      payment_method: payment_method || 'cash',
+      notes: notes || '',
+      user_id: userId || null
+    }])
+    .select();
+
+  if (error) {
+    if (error.code === '23505') {
+       return res.status(400).json({ error: 'Fee already paid for this month' });
+    }
+    return res.status(500).json({ error: error.message });
+  }
+  res.json({ id: data[0].id, message: 'Fee payment recorded successfully' });
+});
+
+app.get('/fees', async (req, res) => {
+  const { student_id, month, year, userId } = req.query;
+  
+  let query = supabase
+    .from('fees')
+    .select('*, students("firstName", "lastName")')
+    .order('year', { ascending: false })
+    .order('month', { ascending: false })
+    .order('payment_date', { ascending: false });
+
+  if (userId) query = query.or(`user_id.eq.${userId},user_id.is.null`);
+  if (student_id) query = query.eq('student_id', student_id);
+  if (month) query = query.eq('month', month);
+  if (year) query = query.eq('year', year);
+
+  const { data, error } = await query;
+  
+  if (error) return res.status(500).json({ error: error.message });
+
+  const results = data.map(f => {
+    // Flatten the student name if student exists, else fallback
+    const firstName = f.students ? f.students.firstName : (f.student_name ? f.student_name.split(' ')[0] : '');
+    const lastName = f.students ? f.students.lastName : (f.student_name ? f.student_name.split(' ').slice(1).join(' ') : '');
+    return {
+      ...f,
+      firstName,
+      lastName
+    };
+  });
+
+  res.json(results);
+});
+
+app.get('/fees/student/:id', async (req, res) => {
   const { id } = req.params;
   
-  // First get the student data
-  db.execute('SELECT * FROM students WHERE id = ?', [id], (err, results) => {
-    if (err || results.length === 0) {
-      res.status(404).json({ error: 'Student not found' });
-      return;
-    }
-    
-    const student = results[0];
-    
-    // Insert into inactive_students table
-    db.execute(
-      'INSERT INTO inactive_students (original_id, firstName, lastName, phoneNumber, gender, fatherName, address, attendance) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-      [student.id, student.firstName, student.lastName, student.phoneNumber, student.gender, student.fatherName, student.address, student.attendance],
-      (err) => {
-        if (err) {
-          res.status(500).json({ error: err.message });
-          return;
-        }
-        
-        // Delete from students table
-        db.execute('DELETE FROM students WHERE id = ?', [id], (err) => {
-          if (err) {
-            res.status(500).json({ error: err.message });
-            return;
-          }
-          
-          res.json({ message: 'Student moved to inactive table' });
-        });
-      }
-    );
-  });
+  const { data, error } = await supabase
+    .from('fees')
+    .select('*')
+    .eq('student_id', id)
+    .order('year', { ascending: false })
+    .order('month', { ascending: false });
+
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data);
 });
 
-// Get inactive students
-app.get('/inactive-students', (req, res) => {
-  db.execute('SELECT * FROM inactive_students', (err, results) => {
-    if (err) {
-      res.status(500).json({ error: err.message });
-      return;
-    }
-    const students = results.map(student => ({
-      ...student,
-      attendance: typeof student.attendance === 'string' ? JSON.parse(student.attendance) : student.attendance
-    }));
-    res.json(students);
-  });
-});
-
-// Login endpoint
-app.post('/login', (req, res) => {
-  const { username, password } = req.body;
+app.put('/fees/:id', async (req, res) => {
+  const { id } = req.params;
+  const { amount, payment_date, payment_method, notes } = req.body;
   
-  db.execute('SELECT * FROM users WHERE username = ? AND password = ?', [username, password], (err, results) => {
-    if (err) {
-      res.status(500).json({ error: 'Database error' });
-      return;
-    }
-    
-    if (results.length > 0) {
-      res.json({ success: true, message: 'Login successful' });
-    } else {
-      res.status(401).json({ success: false, message: 'Invalid credentials' });
-    }
-  });
+  const { error, data } = await supabase
+    .from('fees')
+    .update({ amount, payment_date, payment_method, notes })
+    .eq('id', id)
+    .select();
+
+  if (error) return res.status(500).json({ error: error.message });
+  if (data.length === 0) return res.status(404).json({ error: 'Fee record not found' });
+  
+  res.json({ message: 'Fee record updated successfully' });
 });
 
-// Reactivate student
-app.post('/reactivate/:id', (req, res) => {
+app.delete('/fees/:id', async (req, res) => {
   const { id } = req.params;
   
-  db.execute('SELECT * FROM inactive_students WHERE id = ?', [id], (err, results) => {
-    if (err || results.length === 0) {
-      res.status(404).json({ error: 'Inactive student not found' });
-      return;
-    }
-    
-    const student = results[0];
-    
-    db.execute(
-      'INSERT INTO students (firstName, lastName, phoneNumber, gender, fatherName, address, attendance) VALUES (?, ?, ?, ?, ?, ?, ?)',
-      [student.firstName, student.lastName, student.phoneNumber, student.gender, student.fatherName, student.address, student.attendance],
-      (err) => {
-        if (err) {
-          res.status(500).json({ error: err.message });
-          return;
-        }
-        
-        db.execute('DELETE FROM inactive_students WHERE id = ?', [id], (err) => {
-          if (err) {
-            res.status(500).json({ error: err.message });
-            return;
-          }
-          
-          res.json({ message: 'Student reactivated successfully' });
-        });
-      }
-    );
-  });
-});
+  const { error, data } = await supabase
+    .from('fees')
+    .delete()
+    .eq('id', id)
+    .select();
 
-// Delete inactive student permanently
-app.delete('/inactive-students/:id', (req, res) => {
-  const { id } = req.params;
+  if (error) return res.status(500).json({ error: error.message });
+  if (data.length === 0) return res.status(404).json({ error: 'Fee record not found' });
   
-  db.execute('DELETE FROM inactive_students WHERE id = ?', [id], (err, results) => {
-    if (err) {
-      res.status(500).json({ error: err.message });
-      return;
-    }
-    
-    if (results.affectedRows === 0) {
-      res.status(404).json({ error: 'Inactive student not found' });
-      return;
-    }
-    
-    res.json({ message: 'Student permanently deleted' });
-  });
+  res.json({ message: 'Fee record deleted successfully' });
 });
 
-// Add absent student
-app.post('/absent-students', (req, res) => {
-  const { student_id, student_name, phone_number, absent_date } = req.body;
+// Mark fee as paid (for Paid button)
+app.post('/fees/mark-paid', async (req, res) => {
+  const { student_id, amount, month, year, userId } = req.body;
+  const currentDate = new Date().toISOString().split('T')[0];
   
-  // Check if already exists
-  db.execute(
-    'SELECT COUNT(*) as count FROM absent_students WHERE student_id = ? AND absent_date = ?',
-    [student_id, absent_date],
-    (err, results) => {
-      if (err) {
-        res.status(500).json({ error: err.message });
-        return;
-      }
-      
-      if (results[0].count > 0) {
-        res.json({ message: 'Student already marked absent for this date' });
-        return;
-      }
-      
-      // Insert new record
-      db.execute(
-        'INSERT INTO absent_students (student_id, student_name, phone_number, absent_date) VALUES (?, ?, ?, ?)',
-        [student_id, student_name, phone_number, absent_date],
-        (err, results) => {
-          if (err) {
-            res.status(500).json({ error: err.message });
-            return;
-          }
-          res.json({ message: 'Absent student recorded' });
-        }
-      );
+  // Get student name
+  const { data: studentData } = await supabase
+    .from('students')
+    .select('"firstName", "lastName"')
+    .eq('id', student_id)
+    .single();
+
+  const student_name = studentData 
+    ? `${studentData.firstName} ${studentData.lastName}` 
+    : 'Unknown Student';
+    
+  const { data, error } = await supabase
+    .from('fees')
+    .insert([{
+      student_id,
+      student_name,
+      amount: amount || 0,
+      month,
+      year,
+      payment_date: currentDate,
+      payment_method: 'cash',
+      user_id: userId || null
+    }])
+    .select();
+
+  if (error) {
+    if (error.code === '23505') {
+       return res.status(400).json({ error: 'Fee already paid for this month' });
     }
-  );
+    return res.status(500).json({ error: error.message });
+  }
+  res.json({ success: true, message: 'Fee marked as paid successfully', id: data[0].id });
 });
 
-// Get absent students
-app.get('/absent-students', (req, res) => {
-  db.execute('SELECT * FROM absent_students ORDER BY absent_date DESC', (err, results) => {
-    if (err) {
-      console.error('Database error:', err);
-      res.status(500).json({ error: err.message });
-      return;
-    }
-    console.log('Fetched absent students:', results.length);
-    res.json(results || []);
+// Check if fee is already paid for a specific month/year
+app.get('/fees/check-paid/:student_id/:month/:year', async (req, res) => {
+  const { student_id, month, year } = req.params;
+  
+  const { count, error } = await supabase
+    .from('fees')
+    .select('*', { count: 'exact', head: true })
+    .eq('student_id', student_id)
+    .eq('month', month)
+    .eq('year', year);
+
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ isPaid: count > 0 });
+});
+
+// Get fee summary for a student
+app.get('/fees/summary/:student_id', async (req, res) => {
+  const { student_id } = req.params;
+  
+  // Supabase/Postgrest aggregation needs RPC or manual calculation if complex.
+  // But we can just fetch all and calculate in JS for simplicity, or use .select with summary?
+  // Supabase JS doesn't support aggregate functions directly in .select() easily without RPC.
+  // I'll fetch all payments for student and aggregate in JS.
+  
+  const { data, error } = await supabase
+    .from('fees')
+    .select('amount, payment_date')
+    .eq('student_id', student_id);
+    
+  if (error) return res.status(500).json({ error: error.message });
+
+  const total_payments = data.length;
+  const total_amount = data.reduce((sum, fee) => sum + parseFloat(fee.amount), 0);
+  // find max payment date
+  let last_payment_date = null;
+  if (data.length > 0) {
+      // sort
+      data.sort((a,b) => new Date(b.payment_date) - new Date(a.payment_date));
+      last_payment_date = data[0].payment_date;
+  }
+
+  res.json({
+      total_payments,
+      total_amount,
+      last_payment_date
   });
 });
 
-// Update absent student reason
-app.put('/absent-students/:id', (req, res) => {
+// PIN login
+app.post('/pin-login', async (req, res) => {
+  const { pin, email } = req.body;
+  
+  let query = supabase.from('users').select('*');
+  
+  if (email) {
+    query = query.eq('email', email);
+  } else {
+    query = query.eq('username', 'admin');
+  }
+  
+  const { data, error } = await query;
+  
+  if (error) return res.status(500).json({ error: 'Database error' });
+  
+  if (!data || data.length === 0) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+  }
+
+  const user = data[0];
+  const storedPin = user.pin || '1234';
+  
+  if (pin === storedPin) {
+    res.json({ 
+      success: true, 
+      message: 'Login successful', 
+      user: { 
+        id: user.id, 
+        email: user.email, 
+        username: user.username, 
+        phone_number: user.phone_number 
+      }
+    });
+  } else {
+    res.status(401).json({ success: false, message: 'Invalid PIN' });
+  }
+});
+
+app.put('/update-pin', async (req, res) => {
+  const { newPin } = req.body;
+  
+  // Assume generic admin update
+  const { error } = await supabase
+    .from('users')
+    .update({ pin: newPin })
+    .eq('username', 'admin'); // Restrict to admin for now based on original code
+
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ success: true, message: 'PIN updated successfully' });
+});
+
+// Absent students endpoints
+app.get('/absent-students', async (req, res) => {
+  const userId = req.query.userId;
+  let query = supabase
+    .from('absent_students')
+    .select('*')
+    .order('absent_date', { ascending: false });
+
+  if (userId) {
+    query = query.or(`user_id.eq.${userId},user_id.is.null`);
+  }
+  
+  const { data, error } = await query;
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data || []);
+});
+
+app.post('/absent-students', async (req, res) => {
+  const { student_id, student_name, phone_number, absent_date, reason, userId } = req.body;
+  
+  const { data, error } = await supabase
+    .from('absent_students')
+    .insert([{
+        student_id, 
+        student_name, 
+        phone_number: phone_number || '', 
+        absent_date, 
+        reason: reason || '', 
+        user_id: userId || null
+    }])
+    .select();
+
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ id: data[0].id, message: 'Absent student recorded' });
+});
+
+app.put('/absent-students/:id', async (req, res) => {
   const { id } = req.params;
   const { reason } = req.body;
   
-  console.log('Updating reason for ID:', id, 'Reason:', reason);
+  const { error, data } = await supabase
+    .from('absent_students')
+    .update({ reason })
+    .eq('id', id)
+    .select();
+
+  if (error) return res.status(500).json({ error: error.message });
+  if (data.length === 0) return res.status(404).json({ error: 'Absent student not found' });
   
-  db.execute(
-    'UPDATE absent_students SET reason = ? WHERE id = ?',
-    [reason, id],
-    (err, results) => {
-      if (err) {
-        console.error('Update reason error:', err);
-        res.status(500).json({ error: err.message });
-        return;
-      }
-      
-      console.log('Update results:', results);
-      
-      if (results.affectedRows === 0) {
-        res.status(404).json({ error: 'Absent student not found' });
-        return;
-      }
-      
-      res.json({ message: 'Reason updated successfully', affectedRows: results.affectedRows });
-    }
-  );
+  res.json({ message: 'Reason updated successfully' });
 });
 
-// Delete absent student record
-app.delete('/absent-students/:id', (req, res) => {
+app.delete('/absent-students/:id', async (req, res) => {
   const { id } = req.params;
   
-  console.log('Deleting absent student with ID:', id);
+  const { error, data } = await supabase
+    .from('absent_students')
+    .delete()
+    .eq('id', id)
+    .select();
+
+  if (error) return res.status(500).json({ error: error.message });
+  if (data.length === 0) return res.status(404).json({ error: 'Absent student not found' });
   
-  db.execute(
-    'DELETE FROM absent_students WHERE id = ?',
-    [id],
-    (err, results) => {
-      if (err) {
-        console.error('Delete error:', err);
-        res.status(500).json({ error: err.message });
-        return;
-      }
-      
-      console.log('Delete results:', results.affectedRows);
-      res.json({ message: 'Student removed from absent list', deleted: results.affectedRows > 0 });
-    }
-  );
+  res.json({ message: 'Student removed from absent list' });
 });
 
-// Get PIN
-app.get('/pin', (req, res) => {
-  db.execute('SELECT pin FROM users WHERE username = ?', ['admin'], (err, results) => {
-    if (err || results.length === 0) {
-      res.json({ pin: '1234' });
-      return;
-    }
-    res.json({ pin: results[0].pin });
-  });
+// Settings endpoints
+app.get('/settings/:key', async (req, res) => {
+  const { key } = req.params;
+  const { data, error } = await supabase
+    .from('settings')
+    .select('value')
+    .eq('key', key)
+    .single();
+
+  if (error || !data) {
+    return res.json({ value: '' });
+  }
+  res.json({ value: data.value });
 });
 
-// Update PIN
-app.put('/pin', (req, res) => {
-  const { pin } = req.body;
+app.put('/settings', async (req, res) => {
+  const { key, value } = req.body;
+  const { error } = await supabase
+    .from('settings')
+    .upsert({ key, value: value });
+
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ message: 'Setting updated successfully' });
+});
+
+// PIN endpoints (duplicate of pin-login functionality but for retrieval/update)
+app.get('/pin', async (req, res) => {
+  const userId = req.query.userId;
+  let query = supabase.from('users').select('pin');
   
-  db.execute('UPDATE users SET pin = ? WHERE username = ?', [pin, 'admin'], (err) => {
-    if (err) {
-      res.status(500).json({ error: err.message });
-      return;
-    }
-    res.json({ message: 'PIN updated successfully' });
-  });
+  if (userId) query = query.eq('id', userId);
+  else query = query.eq('username', 'admin');
+
+  const { data, error } = await query;
+
+  if (error || !data || data.length === 0) {
+    return res.json({ pin: '1234' });
+  }
+  res.json({ pin: data[0].pin });
 });
 
-app.listen(3001, '0.0.0.0', () => {
-  console.log('Server running on port 3001');
-  console.log('Web app runs on: http://192.168.1.36:3000');
-  console.log('API server runs on: http://192.168.1.36:3001');
+app.put('/pin', async (req, res) => {
+  const { pin, userId } = req.body;
+  
+  let query = supabase.from('users').update({ pin });
+  
+  if (userId) query = query.eq('id', userId);
+  else query = query.eq('username', 'admin');
+  
+  const { error } = await query;
+  
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ message: 'PIN updated successfully' });
+});
+
+// Inactive students endpoints
+app.get('/inactive-students', async (req, res) => {
+  const userId = req.query.userId;
+  let query = supabase
+    .from('inactive_students')
+    .select('*')
+    .order('moved_date', { ascending: false });
+
+  if (userId) {
+    query = query.or(`user_id.eq.${userId},user_id.is.null`);
+  }
+
+  const { data, error } = await query;
+
+  if (error) return res.status(500).json({ error: error.message });
+  
+  const students = data.map(student => ({
+    ...student,
+    attendance: student.attendance || {}
+  }));
+  res.json(students);
+});
+
+app.post('/reactivate/:id', async (req, res) => {
+  const { id } = req.params;
+  
+  // 1. Get inactive student
+  const { data: student, error: fetchError } = await supabase
+    .from('inactive_students')
+    .select('*')
+    .eq('id', id)
+    .single();
+
+  if (fetchError || !student) {
+      return res.status(404).json({ error: 'Inactive student not found' });
+  }
+  
+  // 2. Insert into students
+  const { error: insertError } = await supabase
+    .from('students')
+    .insert([{
+      "firstName": student.firstName,
+      "lastName": student.lastName,
+      "phoneNumber": student.phoneNumber,
+      gender: student.gender,
+      "fatherName": student.fatherName,
+      address: student.address,
+      attendance: student.attendance,
+      status: 'active',
+      "beltColor": student.beltColor || 'white'
+    }]);
+
+  if (insertError) return res.status(500).json({ error: insertError.message });
+  
+  // 3. Delete from inactive
+  const { error: deleteError } = await supabase
+    .from('inactive_students')
+    .delete()
+    .eq('id', id);
+
+  if (deleteError) return res.status(500).json({ error: deleteError.message });
+  
+  res.json({ message: 'Student reactivated successfully' });
+});
+
+app.delete('/inactive-students/:id', async (req, res) => {
+  const { id } = req.params;
+  
+  const { error, data } = await supabase
+    .from('inactive_students')
+    .delete()
+    .eq('id', id)
+    .select();
+
+  if (error) return res.status(500).json({ error: error.message });
+  if (data.length === 0) return res.status(404).json({ error: 'Inactive student not found' });
+  
+  res.json({ message: 'Student permanently deleted' });
+});
+
+// Move student to inactive
+app.delete('/students/:id', async (req, res) => {
+  const { id } = req.params;
+  
+  // 1. Get student
+  const { data: student, error: fetchError } = await supabase
+    .from('students')
+    .select('*')
+    .eq('id', id)
+    .single();
+
+  if (fetchError || !student) {
+    return res.status(404).json({ error: 'Student not found' });
+  }
+  
+  // 2. Insert into inactive
+  const { error: insertError } = await supabase
+    .from('inactive_students')
+    .insert([{
+        original_id: student.id,
+        "firstName": student.firstName,
+        "lastName": student.lastName,
+        "phoneNumber": student.phoneNumber,
+        gender: student.gender,
+        "fatherName": student.fatherName,
+        address: student.address,
+        attendance: student.attendance,
+        "beltColor": student.beltColor,
+        user_id: student.user_id
+    }]);
+
+  if (insertError) return res.status(500).json({ error: insertError.message });
+
+  // 3. Delete from students
+  const { error: deleteError } = await supabase
+    .from('students')
+    .delete()
+    .eq('id', id);
+
+  if (deleteError) return res.status(500).json({ error: deleteError.message });
+  
+  res.json({ message: 'Student moved to inactive list' });
+});
+
+const PORT = process.env.SERVER_PORT || 3001;
+const server = app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
+
+server.on('error', (err) => {
+  console.error('Server failed to start:', err);
+  process.exit(1);
 });

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { API_BASE_URL } from '../config';
 
 const BulkOperations = ({ onBack }) => {
   const [students, setStudents] = useState([]);
@@ -8,9 +9,18 @@ const BulkOperations = ({ onBack }) => {
   const [message, setMessage] = useState('');
 
   useEffect(() => {
-    fetch(`${window.location.protocol}//${window.location.hostname}:3001/students`)
+    const user = JSON.parse(localStorage.getItem('user'));
+    const userId = user ? user.id : null;
+
+    fetch(`${API_BASE_URL}/students?userId=${userId}`)
       .then(res => res.json())
-      .then(data => setStudents(data))
+      .then(data => {
+        if (Array.isArray(data)) {
+          setStudents(data);
+        } else {
+          setStudents([]);
+        }
+      })
       .catch(e => console.error('Error loading students:', e));
   }, []);
 
@@ -50,7 +60,7 @@ const BulkOperations = ({ onBack }) => {
               }
             };
 
-            await fetch(`${window.location.protocol}//${window.location.hostname}:3001/students/${studentId}`, {
+            await fetch(`${API_BASE_URL}/students/${studentId}`, {
               method: 'PUT',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify(updatedStudent)

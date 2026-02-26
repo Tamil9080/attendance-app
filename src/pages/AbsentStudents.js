@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { API_BASE_URL } from '../config';
 
 const AbsentStudents = ({ onBack }) => {
   const [absentStudents, setAbsentStudents] = useState([]);
@@ -11,9 +12,12 @@ const AbsentStudents = ({ onBack }) => {
   const [dateFilter, setDateFilter] = useState('');
 
   useEffect(() => {
+    const user = JSON.parse(localStorage.getItem('user'));
+    const userId = user ? user.id : null;
+
     Promise.all([
-      fetch(`${window.location.protocol}//${window.location.hostname}:3001/absent-students`),
-      fetch(`${window.location.protocol}//${window.location.hostname}:3001/students`)
+      fetch(`${API_BASE_URL}/absent-students?userId=${userId}`),
+      fetch(`${API_BASE_URL}/students?userId=${userId}`)
     ])
     .then(([absentRes, studentsRes]) => Promise.all([absentRes.json(), studentsRes.json()]))
     .then(([absentData, studentsData]) => {
@@ -113,7 +117,7 @@ const AbsentStudents = ({ onBack }) => {
     if (window.confirm(`Delete ${selectedStudents.length} students from absent list?`)) {
       try {
         await Promise.all(selectedStudents.map(id => 
-          fetch(`${window.location.protocol}//${window.location.hostname}:3001/absent-students/${id}`, {
+          fetch(`${API_BASE_URL}/absent-students/${id}`, {
             method: 'DELETE'
           })
         ));
@@ -127,7 +131,7 @@ const AbsentStudents = ({ onBack }) => {
 
   const saveReason = async (id) => {
     try {
-      const response = await fetch(`${window.location.protocol}//${window.location.hostname}:3001/absent-students/${id}`, {
+      const response = await fetch(`${API_BASE_URL}/absent-students/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ reason })
@@ -340,7 +344,7 @@ const AbsentStudents = ({ onBack }) => {
                             onClick={async () => {
                               if (window.confirm('Remove this student from absent list?')) {
                                 try {
-                                  const response = await fetch(`${window.location.protocol}//${window.location.hostname}:3001/absent-students/${student.id}`, {
+                                  const response = await fetch(`${API_BASE_URL}/absent-students/${student.id}`, {
                                     method: 'DELETE'
                                   });
                                   
