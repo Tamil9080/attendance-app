@@ -36,8 +36,12 @@ const App = () => {
   // Check login status
   useEffect(() => {
     const loginStatus = localStorage.getItem('isLoggedIn');
-    if (loginStatus === 'true') {
+    const storedUser = localStorage.getItem('user');
+    if (loginStatus === 'true' && storedUser) {
       setIsLoggedIn(true);
+    } else if (loginStatus === 'true' && !storedUser) {
+      localStorage.removeItem('isLoggedIn');
+      setIsLoggedIn(false);
     }
   }, []);
 
@@ -54,6 +58,14 @@ const App = () => {
 
   const toggleTheme = () => {
     setIsDarkTheme(!isDarkTheme);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('isLoggedIn');
+    localStorage.removeItem('user');
+    setIsLoggedIn(false);
+    setCurrentView('main');
+    setShowMenu(false);
   };
 
   // Load locked days from localStorage
@@ -408,6 +420,9 @@ const App = () => {
                     </button>
                     <button className="dropdown-item" onClick={() => {setCurrentView('settings'); setShowMenu(false);}}>
                       ⚙️ Settings
+                    </button>
+                    <button className="dropdown-item" onClick={handleLogout}>
+                      🚪 Logout
                     </button>
                   </div>
                 </>
