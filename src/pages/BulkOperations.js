@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { API_BASE_URL } from '../config';
 
-const BulkOperations = ({ onBack }) => {
+const BulkOperations = ({ onBack, instituteType }) => {
   const [students, setStudents] = useState([]);
   const [selectedStudents, setSelectedStudents] = useState([]);
   const [operation, setOperation] = useState('');
@@ -12,7 +12,7 @@ const BulkOperations = ({ onBack }) => {
     const user = JSON.parse(localStorage.getItem('user'));
     const userId = user ? user.id : null;
 
-    fetch(`${API_BASE_URL}/students?userId=${userId}`)
+    fetch(`${API_BASE_URL}/students?userId=${userId}&instituteType=${instituteType}`)
       .then(res => res.json())
       .then(data => {
         if (Array.isArray(data)) {
@@ -22,7 +22,7 @@ const BulkOperations = ({ onBack }) => {
         }
       })
       .catch(e => console.error('Error loading students:', e));
-  }, []);
+  }, [instituteType]);
 
   const handleSelectAll = () => {
     if (selectedStudents.length === students.length) {

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { API_BASE_URL } from '../config';
 
-const AbsentStudents = ({ onBack }) => {
+const AbsentStudents = ({ onBack, instituteType }) => {
   const [absentStudents, setAbsentStudents] = useState([]);
   const [filteredStudents, setFilteredStudents] = useState([]);
   const [allStudents, setAllStudents] = useState([]);
@@ -16,8 +16,8 @@ const AbsentStudents = ({ onBack }) => {
     const userId = user ? user.id : null;
 
     Promise.all([
-      fetch(`${API_BASE_URL}/absent-students?userId=${userId}`),
-      fetch(`${API_BASE_URL}/students?userId=${userId}`)
+      fetch(`${API_BASE_URL}/absent-students?userId=${userId}&instituteType=${instituteType}`),
+      fetch(`${API_BASE_URL}/students?userId=${userId}&instituteType=${instituteType}`)
     ])
     .then(([absentRes, studentsRes]) => Promise.all([absentRes.json(), studentsRes.json()]))
     .then(([absentData, studentsData]) => {
@@ -50,7 +50,7 @@ const AbsentStudents = ({ onBack }) => {
       console.error('Error loading data:', e);
       setAbsentStudents([]);
     });
-  }, []);
+  }, [instituteType]);
 
   const sendWhatsAppMessage = (student) => {
     const message = `Hi ${student.student_name}, you were marked absent on ${student.absent_date}. Please let us know why you couldn't attend. Thank you!`;

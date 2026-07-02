@@ -1,5 +1,7 @@
 * {
   box-sizing: border-box;
+  margin: 0;
+  padding: 0;
 }
 
 body {
@@ -10,330 +12,42 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 50%, #cbd5e1 100%);
-  color: #1f2937;
-  overflow-x: auto;
-  line-height: 1.6;
 }
 
-/* Mobile responsive styles */
-.app-container {
-  width: 100%;
-  overflow-x: auto;
-  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 50%, #cbd5e1 100%);
-  min-height: 100vh;
+/* Beautiful custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
 }
 
-.app-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 24px;
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(10px);
-  border-bottom: 1px solid #e5e7eb;
-  border-radius: 16px 16px 0 0;
-  flex-wrap: wrap;
-  gap: 16px;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+::-webkit-scrollbar-track {
+  background: transparent;
 }
 
-.app-header-left {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+::-webkit-scrollbar-thumb {
+  background: var(--border-dark, #cbd5e1);
+  border-radius: 999px;
 }
 
-.app-title {
-  font-size: 24px;
-  font-weight: 700;
-  font-family: 'Poppins', sans-serif;
-  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  margin: 0;
-  letter-spacing: -0.025em;
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted, #94a3b8);
 }
 
-.selection-section {
-  padding: 24px;
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(10px);
-  border: 1px solid #e5e7eb;
-  border-radius: 16px;
-  margin: 20px;
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+.dark-theme ::-webkit-scrollbar-thumb {
+  background: var(--border, #1e293b);
 }
 
-.select-container {
-  display: flex;
-  gap: 16px;
-  flex-wrap: wrap;
+.dark-theme ::-webkit-scrollbar-thumb:hover {
+  background: var(--border-dark, #334155);
 }
 
-.select-input {
-  padding: 12px 16px;
-  border: 2px solid #e5e7eb;
-  border-radius: 8px;
-  outline: none;
-  flex: 1;
-  min-width: 150px;
-  background-color: #ffffff;
-  color: #1f2937;
-  font-size: 14px;
-  font-weight: 500;
-  font-family: 'Inter', sans-serif;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+/* Text Selection colors */
+::selection {
+  background: rgba(99, 102, 241, 0.2);
+  color: var(--primary, #6366f1);
 }
 
-.select-input:focus {
-  border-color: #6366f1;
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1), 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-  transform: translateY(-1px);
-}
-
-.select-input:hover {
-  border-color: #818cf8;
-}
-
-.attendance-section {
-  margin: 20px;
-  overflow-x: auto;
-}
-
-.attendance-table {
-  width: 100%;
-  border-collapse: collapse;
-  min-width: 600px;
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(10px);
-  border: 1px solid #e5e7eb;
-  border-radius: 16px;
-  overflow: hidden;
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-}
-
-.attendance-table th,
-.attendance-table td {
-  border: 1px solid #f3f4f6;
-  padding: 12px;
-  text-align: center;
-  color: #1f2937;
-  font-weight: 500;
-}
-
-.names {
-  text-align: left !important;
-  min-width: 120px;
-  font-weight: bold;
+.dark-theme ::selection {
+  background: rgba(99, 102, 241, 0.4);
   color: #ffffff;
 }
-
-.attendance-control {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  margin: 2px auto;
-  font-weight: bold;
-  font-size: 18px;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-.attendance-control:hover {
-  transform: scale(1.1);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-}
-
-.attendance-control.present {
-  background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
-  color: #ffffff;
-}
-
-.attendance-control.absent {
-  background: linear-gradient(135deg, #dc3545 0%, #fd7e14 100%);
-  color: #ffffff;
-}
-
-.attendance-control.neutral {
-  background-color: #2d2d2d;
-  border: 2px dashed #404040;
-  color: #cccccc;
-}
-
-.day-th {
-  min-width: 60px;
-}
-
-.message-box {
-  position: fixed;
-  top: 16px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
-  color: #ffffff;
-  padding: 12px 24px;
-  border-radius: 8px;
-  z-index: 1000;
-  font-weight: bold;
-  border: 1px solid #404040;
-}
-
-/* Mobile specific styles */
-@media (max-width: 768px) {
-  .app-header {
-    flex-direction: column;
-    text-align: center;
-    padding: 10px;
-    align-items: center;
-  }
-
-  .app-header-left {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-bottom: 10px;
-  }
-
-  .app-title {
-    font-size: 14px;
-    word-break: break-word;
-    line-height: 1.2;
-  }
-
-  .selection-section {
-    margin: 5px;
-    padding: 10px;
-  }
-
-  .select-container {
-    flex-direction: column;
-    gap: 10px;
-  }
-
-  .select-input {
-    width: 100%;
-    min-width: auto;
-    padding: 8px;
-  }
-
-  .attendance-section {
-    margin: 5px;
-    padding: 0;
-  }
-
-  .attendance-table {
-    font-size: 12px;
-    min-width: 100%;
-  }
-
-  .attendance-table th,
-  .attendance-table td {
-    padding: 4px 2px;
-    font-size: 11px;
-  }
-
-  .names {
-    min-width: 70px;
-    font-size: 10px;
-    padding: 4px 2px !important;
-  }
-
-  .attendance-control {
-    width: 28px;
-    height: 28px;
-    font-size: 12px;
-  }
-
-  .day-th {
-    min-width: 30px;
-    font-size: 9px;
-    padding: 2px 1px;
-  }
-
-  .day-th button {
-    padding: 1px 3px;
-    font-size: 8px;
-  }
-
-  .app-header button {
-    padding: 6px 10px;
-    font-size: 12px;
-    margin: 2px;
-  }
-
-  .app-header > div:last-child {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 5px;
-  }
-}
-
-@media (max-width: 480px) {
-  .app-container {
-    padding: 0;
-  }
-
-  .app-header {
-    padding: 8px;
-    flex-wrap: wrap;
-    gap: 5px;
-  }
-
-  .year-display {
-    order: -1;
-    width: 100%;
-    text-align: center;
-    margin-bottom: 5px;
-  }
-
-  .app-title {
-    font-size: 12px;
-    word-break: break-word;
-    line-height: 1.1;
-    margin: 5px 0;
-  }
-
-  .selection-section h2 {
-    font-size: 16px;
-  }
-
-  .attendance-section h2 {
-    font-size: 14px;
-    margin: 10px 0;
-  }
-
-  .attendance-table th,
-  .attendance-table td {
-    padding: 2px 1px;
-    font-size: 10px;
-  }
-
-  .names {
-    min-width: 60px;
-    font-size: 9px;
-  }
-
-  .attendance-control {
-    width: 24px;
-    height: 24px;
-    font-size: 10px;
-  }
-
-  .day-th {
-    min-width: 25px;
-    font-size: 8px;
-  }
-
-  .app-header button {
-    padding: 4px 8px;
-    font-size: 10px;
-  }
-}
-

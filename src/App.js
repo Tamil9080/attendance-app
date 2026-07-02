@@ -14,12 +14,16 @@ import Analytics from './pages/Analytics';
 import Notifications from './pages/Notifications';
 import Fees from './pages/Fees';
 import AttendanceControl from './components/AttendanceControl';
+import InstituteSelector from './components/InstituteSelector';
 import { API_BASE_URL } from './config';
 
 const App = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(() => {
     // Check login status on app start
     return localStorage.getItem('isLoggedIn') === 'true';
+  });
+  const [selectedInstitute, setSelectedInstitute] = useState(() => {
+    return localStorage.getItem('selectedInstitute') || null;
   });
   const [students, setStudents] = useState([]);
   const [isDarkTheme, setIsDarkTheme] = useState(() => {
@@ -63,7 +67,9 @@ const App = () => {
   const handleLogout = () => {
     localStorage.removeItem('isLoggedIn');
     localStorage.removeItem('user');
+    localStorage.removeItem('selectedInstitute');
     setIsLoggedIn(false);
+    setSelectedInstitute(null);
     setCurrentView('main');
     setShowMenu(false);
   };
@@ -88,14 +94,14 @@ const App = () => {
 
   const getCurrentMonthKey = () => `${monthNames[selectedMonth]}-${selectedYear}`;
 
-  // Load students from database on initial render
+  // Load students from database on initial render or when selectedInstitute changes
   useEffect(() => {
-    if (!isLoggedIn) return;
+    if (!isLoggedIn || !selectedInstitute) return;
 
     const user = JSON.parse(localStorage.getItem('user') || '{}');
     const userId = user.id;
 
-    fetch(`${API_BASE_URL}/students?userId=${userId}`)
+    fetch(`${API_BASE_URL}/students?userId=${userId}&instituteType=${selectedInstitute}`)
       .then(res => res.json())
       .then(data => {
         if (Array.isArray(data)) {
@@ -111,7 +117,7 @@ const App = () => {
         console.error("Could not load data from database", e);
         showMessage("Error loading data from database.");
       });
-  }, [isLoggedIn]);
+  }, [isLoggedIn, selectedInstitute]);
 
   // Enhanced message system
   const showMessage = (text, type = 'success') => {
@@ -192,7 +198,8 @@ const App = () => {
             student_name: `${student.firstName} ${student.lastName}`,
             phone_number: student.phoneNumber || '',
             absent_date: `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`,
-            reason: ''
+            reason: '',
+            instituteType: selectedInstitute
           };
           
           fetch(`${API_BASE_URL}/absent-students`, {
@@ -293,51 +300,6 @@ const App = () => {
     return { presentCount, absentCount };
   };
 
-  if (currentView === 'dashboard') {
-    return <Dashboard onBack={() => setCurrentView('main')} />;
-  }
-
-  if (currentView === 'view') {
-    return <AttendanceView onBack={() => setCurrentView('main')} />;
-  }
-
-  if (currentView === 'add') {
-    return <AddStudent onBack={() => setCurrentView('main')} onStudentAdded={() => {
-      // Reload from database
-      fetch(`${API_BASE_URL}/students`)
-        .then(res => res.json())
-        .then(data => setStudents(data))
-        .catch(e => console.error("Could not reload students", e));
-    }} />;
-  }
-
-  if (currentView === 'bulk') {
-    return <BulkOperations onBack={() => setCurrentView('main')} />;
-  }
-
-  if (currentView === 'analytics') {
-    return <Analytics onBack={() => setCurrentView('main')} />;
-  }
-
-  if (currentView === 'notifications') {
-    return <Notifications onBack={() => setCurrentView('main')} />;
-  }
-
-  if (currentView === 'fees') {
-    return <Fees onBack={() => setCurrentView('main')} />;
-  }
-
-  if (currentView === 'inactive') {
-    return <InactiveStudents onBack={() => setCurrentView('main')} />;
-  }
-
-  if (currentView === 'settings') {
-    return <Settings onBack={() => setCurrentView('main')} />;
-  }
-  if (currentView === 'absent') {
-    return <AbsentStudents onBack={() => setCurrentView('main')} />;
-  }
-
   // Show Login/Register if not logged in
   if (!isLoggedIn) {
     return (
@@ -349,6 +311,65 @@ const App = () => {
     );
   }
 
+  // Show Institute Selector if none is selected
+  if (!selectedInstitute) {
+    return (
+      <InstituteSelector 
+        onSelect={(inst) => {
+          localStorage.setItem('selectedInstitute', inst);
+          setSelectedInstitute(inst);
+        }} 
+      />
+    );
+  }
+
+  if (currentView === 'dashboard') {
+    return <Dashboard onBack={() => setCurrentView('main')} instituteType={selectedInstitute} />;
+  }
+
+  if (currentView === 'view') {
+    return <AttendanceView onBack={() => setCurrentView('main')} instituteType={selectedInstitute} />;
+  }
+
+  if (currentView === 'add') {
+    return <AddStudent onBack={() => setCurrentView('main')} instituteType={selectedInstitute} onStudentAdded={() => {
+      // Reload from database
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      const userId = user.id;
+      fetch(`${API_BASE_URL}/students?userId=${userId}&instituteType=${selectedInstitute}`)
+        .then(res => res.json())
+        .then(data => setStudents(data))
+        .catch(e => console.error("Could not reload students", e));
+    }} />;
+  }
+
+  if (currentView === 'bulk') {
+    return <BulkOperations onBack={() => setCurrentView('main')} instituteType={selectedInstitute} />;
+  }
+
+  if (currentView === 'analytics') {
+    return <Analytics onBack={() => setCurrentView('main')} instituteType={selectedInstitute} />;
+  }
+
+  if (currentView === 'notifications') {
+    return <Notifications onBack={() => setCurrentView('main')} instituteType={selectedInstitute} />;
+  }
+
+  if (currentView === 'fees') {
+    return <Fees onBack={() => setCurrentView('main')} instituteType={selectedInstitute} />;
+  }
+
+  if (currentView === 'inactive') {
+    return <InactiveStudents onBack={() => setCurrentView('main')} instituteType={selectedInstitute} />;
+  }
+
+  if (currentView === 'settings') {
+    return <Settings onBack={() => setCurrentView('main')} instituteType={selectedInstitute} />;
+  }
+  if (currentView === 'absent') {
+    return <AbsentStudents onBack={() => setCurrentView('main')} instituteType={selectedInstitute} />;
+  }
+
   return (
     <div className="app-container">
       <div className="app-content">
@@ -358,13 +379,18 @@ const App = () => {
           </div>
         )}
         <header className="app-header">
-          <div className="app-header-left">
+          <div className="app-header-left" style={{ gap: '12px' }}>
             <span className="karate-emoji" role="img" aria-label="karate">
               🥋
             </span>
             <h1 className="app-title">
               Attendance System
             </h1>
+            <span className="status-info" style={{ cursor: 'default', padding: '4px 10px', fontSize: '11px', fontWeight: '800', textTransform: 'uppercase', borderRadius: '6px' }}>
+              {selectedInstitute === 'gym' ? '🏋️‍♂️ Gym' :
+               selectedInstitute === 'school' ? '🏫 School' :
+               selectedInstitute === 'college' ? '🎓 College' : '🏢 Other'}
+            </span>
           </div>
           <div className="flex items-center gap-3">
             <div className="status-info" style={{cursor: 'default', padding: 'var(--spacing-md) var(--spacing-lg)', fontSize: '14px', fontWeight: '600'}}>
@@ -421,6 +447,23 @@ const App = () => {
                     <button className="dropdown-item" onClick={() => {setCurrentView('settings'); setShowMenu(false);}}>
                       ⚙️ Settings
                     </button>
+                    <hr style={{ border: '0', borderTop: '1px solid var(--border)', margin: '8px 0' }} />
+                    <div style={{ padding: '4px 16px', fontSize: '10px', fontWeight: 'bold', color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                      Switch Database
+                    </div>
+                    <button className={`dropdown-item ${selectedInstitute === 'gym' ? 'active' : ''}`} onClick={() => { localStorage.setItem('selectedInstitute', 'gym'); setSelectedInstitute('gym'); setShowMenu(false); }}>
+                      🏋️‍♂️ Gym Database
+                    </button>
+                    <button className={`dropdown-item ${selectedInstitute === 'school' ? 'active' : ''}`} onClick={() => { localStorage.setItem('selectedInstitute', 'school'); setSelectedInstitute('school'); setShowMenu(false); }}>
+                      🏫 School Database
+                    </button>
+                    <button className={`dropdown-item ${selectedInstitute === 'college' ? 'active' : ''}`} onClick={() => { localStorage.setItem('selectedInstitute', 'college'); setSelectedInstitute('college'); setShowMenu(false); }}>
+                      🎓 College Database
+                    </button>
+                    <button className={`dropdown-item ${selectedInstitute === 'other' ? 'active' : ''}`} onClick={() => { localStorage.setItem('selectedInstitute', 'other'); setSelectedInstitute('other'); setShowMenu(false); }}>
+                      🏢 Other Database
+                    </button>
+                    <hr style={{ border: '0', borderTop: '1px solid var(--border)', margin: '8px 0' }} />
                     <button className="dropdown-item" onClick={handleLogout}>
                       🚪 Logout
                     </button>

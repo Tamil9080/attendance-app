@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { API_BASE_URL } from '../config';
 
-const Settings = ({ onBack }) => {
+const Settings = ({ onBack, instituteType }) => {
   const [currentPin, setCurrentPin] = useState('');
   const [newPin, setNewPin] = useState('');
   const [confirmPin, setConfirmPin] = useState('');
@@ -10,11 +10,11 @@ const Settings = ({ onBack }) => {
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    fetch(`${API_BASE_URL}/settings/defaultFee`)
+    fetch(`${API_BASE_URL}/settings/defaultFee?instituteType=${instituteType}`)
       .then(res => res.json())
       .then(data => setDefaultFee(data.value || ''))
       .catch(e => console.error('Could not load settings', e));
-  }, []);
+  }, [instituteType]);
 
   const handleSetDefaultFee = async () => {
     setIsLoading(true);
@@ -23,7 +23,7 @@ const Settings = ({ onBack }) => {
         {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ key: 'defaultFee', value: defaultFee })
+          body: JSON.stringify({ key: 'defaultFee', value: defaultFee, instituteType })
         });
       if (response.ok) {
         setMessage('Default fee updated successfully!');

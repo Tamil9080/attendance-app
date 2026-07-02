@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { API_BASE_URL } from '../config';
 
-const Dashboard = ({ onBack }) => {
+const Dashboard = ({ onBack, instituteType }) => {
   const [stats, setStats] = useState({
     totalStudents: 0,
     presentToday: 0,
@@ -16,8 +16,8 @@ const Dashboard = ({ onBack }) => {
 
     // Fetch dashboard data
     Promise.all([
-      fetch(`${API_BASE_URL}/students?userId=${userId}`),
-      fetch(`${API_BASE_URL}/absent-students?userId=${userId}`)
+      fetch(`${API_BASE_URL}/students?userId=${userId}&instituteType=${instituteType}`),
+      fetch(`${API_BASE_URL}/absent-students?userId=${userId}&instituteType=${instituteType}`)
     ])
     .then(([studentsRes, absentRes]) => Promise.all([studentsRes.json(), absentRes.json()]))
     .then(([students, absentStudents]) => {

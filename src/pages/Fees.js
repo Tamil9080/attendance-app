@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { API_BASE_URL } from '../config';
 
-const Fees = ({ onBack }) => {
+const Fees = ({ onBack, instituteType }) => {
   const [students, setStudents] = useState([]);
   const [filteredStudents, setFilteredStudents] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -28,7 +28,7 @@ const Fees = ({ onBack }) => {
     const user = JSON.parse(localStorage.getItem('user'));
     const userId = user ? user.id : null;
 
-    fetch(`${API_BASE_URL}/students?userId=${userId}`)
+    fetch(`${API_BASE_URL}/students?userId=${userId}&instituteType=${instituteType}`)
       .then(res => res.json())
       .then(data => {
         setStudents(data);
@@ -36,11 +36,11 @@ const Fees = ({ onBack }) => {
       })
       .catch(e => console.error('Error loading students:', e));
     
-    fetch(`${API_BASE_URL}/fees?userId=${userId}`)
+    fetch(`${API_BASE_URL}/fees?userId=${userId}&instituteType=${instituteType}`)
       .then(res => res.json())
       .then(data => setPaymentHistory(data))
       .catch(e => console.error('Error loading payment history:', e));
-  }, []);
+  }, [instituteType]);
 
   const getFeeStatus = (student, monthIndex) => {
     const monthKey = `${monthNames[monthIndex]}-${selectedYear}`;
@@ -182,7 +182,8 @@ const Fees = ({ onBack }) => {
       payment_date: newStatus.split('T')[0],
       payment_method: paymentMethod,
       notes: (discountAmt > 0 ? `Discount applied: ₹${discountAmt}. ` : '') + (notes || ''),
-      userId: userId
+      userId: userId,
+      instituteType: instituteType
     };
 
     try {
@@ -207,7 +208,7 @@ const Fees = ({ onBack }) => {
           setPaymentModalData(null);
           
           // Refetch payment history
-          fetch(`${API_BASE_URL}/fees?userId=${userId}`)
+          fetch(`${API_BASE_URL}/fees?userId=${userId}&instituteType=${instituteType}`)
             .then(res => res.json())
             .then(data => setPaymentHistory(data))
             .catch(e => console.error('Error reloading payment history:', e));

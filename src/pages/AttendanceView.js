@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { API_BASE_URL } from '../config';
 
-const AttendanceView = ({ onBack }) => {
+const AttendanceView = ({ onBack, instituteType }) => {
   const goBack = () => {
     onBack();
   };
@@ -25,7 +25,7 @@ const AttendanceView = ({ onBack }) => {
     const user = JSON.parse(localStorage.getItem('user'));
     const userId = user ? user.id : null;
 
-    fetch(`${API_BASE_URL}/students?userId=${userId}`)
+    fetch(`${API_BASE_URL}/students?userId=${userId}&instituteType=${instituteType}`)
       .then(res => res.json())
       .then(data => {
         if (Array.isArray(data)) {
@@ -36,7 +36,7 @@ const AttendanceView = ({ onBack }) => {
         }
       })
       .catch(e => console.error("Could not load data", e));
-  }, []);
+  }, [instituteType]);
 
   // Get all Sundays in the selected month
   const getSundaysInMonth = (year = selectedYear, month = selectedMonth) => {

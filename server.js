@@ -35,7 +35,8 @@ app.post('/register', async (req, res) => {
         password, 
         phone_number, 
         username: username || email.split('@')[0], 
-        pin: pin || '1234' 
+        pin: pin || '1234',
+        workspaces: JSON.stringify(['gym', 'school', 'college', 'other'])
       }
     ])
     .select();
@@ -77,25 +78,53 @@ app.post('/login', async (req, res) => {
   }
 
   const user = users[0];
+  let workspaces = ['gym', 'school', 'college', 'other'];
+  if (user.workspaces) {
+    try {
+      workspaces = JSON.parse(user.workspaces);
+    } catch (e) {
+      console.error('Error parsing user workspaces:', e);
+    }
+  }
+
   res.json({ 
     success: true, 
     user: { 
       id: user.id, 
       email: user.email, 
       username: user.username, 
-      phone_number: user.phone_number 
+      phone_number: user.phone_number,
+      workspaces
     } 
   });
+});
+
+app.put('/users/:id/workspaces', async (req, res) => {
+  const { id } = req.params;
+  const { workspaces } = req.body;
+  
+  const { error } = await supabase
+    .from('users')
+    .update({ workspaces: JSON.stringify(workspaces) })
+    .eq('id', id);
+
+  if (error) {
+    console.error('Error updating workspaces:', error);
+    return res.status(500).json({ error: error.message });
+  }
+  res.json({ success: true, workspaces });
 });
 
 // Student routes
 app.get('/students', async (req, res) => {
   const userId = req.query.userId;
+  const instituteType = req.query.instituteType || 'other';
   
   let query = supabase
     .from('students')
     .select('*')
-    .eq('status', 'active');
+    .eq('status', 'active')
+    .eq('institute_type', instituteType);
 
   if (userId) {
     query = query.or(`user_id.eq.${userId},user_id.is.null`);
@@ -120,7 +149,7 @@ app.get('/students', async (req, res) => {
 });
 
 app.post('/students', async (req, res) => {
-  const { firstName, lastName, phoneNumber, gender, fatherName, address, beltColor, userId } = req.body;
+  const { firstName, lastName, phoneNumber, gender, fatherName, address, beltColor, userId, instituteType } = req.body;
   
   const { data, error } = await supabase
     .from('students')
@@ -133,7 +162,8 @@ app.post('/students', async (req, res) => {
       address,
       "beltColor": beltColor || 'white',
       attendance: {},
-      user_id: userId || null
+      user_id: userId || null,
+      institute_type: instituteType || 'other'
     }])
     .select();
 
@@ -170,7 +200,7 @@ app.put('/students/:id', async (req, res) => {
 
 // Fees management routes
 app.post('/fees', async (req, res) => {
-  const { student_id, amount, month, year, payment_date, payment_method, notes, userId } = req.body;
+  const { student_id, amount, month, year, payment_date, payment_method, notes, userId, instituteType } = req.body;
   
   // Get student name
   const { data: studentData } = await supabase
@@ -194,7 +224,8 @@ app.post('/fees', async (req, res) => {
       payment_date,
       payment_method: payment_method || 'cash',
       notes: notes || '',
-      user_id: userId || null
+      user_id: userId || null,
+      institute_type: instituteType || 'other'
     }])
     .select();
 
@@ -208,11 +239,12 @@ app.post('/fees', async (req, res) => {
 });
 
 app.get('/fees', async (req, res) => {
-  const { student_id, month, year, userId } = req.query;
+  const { student_id, month, year, userId, instituteType } = req.query;
   
   let query = supabase
     .from('fees')
     .select('*, students("firstName", "lastName")')
+    .eq('institute_type', instituteType || 'other')
     .order('year', { ascending: false })
     .order('month', { ascending: false })
     .order('payment_date', { ascending: false });
@@ -287,7 +319,7 @@ app.delete('/fees/:id', async (req, res) => {
 
 // Mark fee as paid (for Paid button)
 app.post('/fees/mark-paid', async (req, res) => {
-  const { student_id, amount, month, year, userId } = req.body;
+  const { student_id, amount, month, year, userId, instituteType } = req.body;
   const currentDate = new Date().toISOString().split('T')[0];
   
   // Get student name
@@ -311,7 +343,8 @@ app.post('/fees/mark-paid', async (req, res) => {
       year,
       payment_date: currentDate,
       payment_method: 'cash',
-      user_id: userId || null
+      user_id: userId || null,
+      institute_type: instituteType || 'other'
     }])
     .select();
 
@@ -427,9 +460,11 @@ app.put('/update-pin', async (req, res) => {
 // Absent students endpoints
 app.get('/absent-students', async (req, res) => {
   const userId = req.query.userId;
+  const instituteType = req.query.instituteType || 'other';
   let query = supabase
     .from('absent_students')
     .select('*')
+    .eq('institute_type', instituteType)
     .order('absent_date', { ascending: false });
 
   if (userId) {
@@ -442,7 +477,7 @@ app.get('/absent-students', async (req, res) => {
 });
 
 app.post('/absent-students', async (req, res) => {
-  const { student_id, student_name, phone_number, absent_date, reason, userId } = req.body;
+  const { student_id, student_name, phone_number, absent_date, reason, userId, instituteType } = req.body;
   
   const { data, error } = await supabase
     .from('absent_students')
@@ -452,7 +487,8 @@ app.post('/absent-students', async (req, res) => {
         phone_number: phone_number || '', 
         absent_date, 
         reason: reason || '', 
-        user_id: userId || null
+        user_id: userId || null,
+        institute_type: instituteType || 'other'
     }])
     .select();
 
@@ -494,10 +530,12 @@ app.delete('/absent-students/:id', async (req, res) => {
 // Settings endpoints
 app.get('/settings/:key', async (req, res) => {
   const { key } = req.params;
+  const instituteType = req.query.instituteType || 'other';
   const { data, error } = await supabase
     .from('settings')
     .select('value')
     .eq('key', key)
+    .eq('institute_type', instituteType)
     .single();
 
   if (error || !data) {
@@ -507,10 +545,10 @@ app.get('/settings/:key', async (req, res) => {
 });
 
 app.put('/settings', async (req, res) => {
-  const { key, value } = req.body;
+  const { key, value, instituteType } = req.body;
   const { error } = await supabase
     .from('settings')
-    .upsert({ key, value: value });
+    .upsert({ key, value: value, institute_type: instituteType || 'other' });
 
   if (error) return res.status(500).json({ error: error.message });
   res.json({ message: 'Setting updated successfully' });
@@ -549,9 +587,11 @@ app.put('/pin', async (req, res) => {
 // Inactive students endpoints
 app.get('/inactive-students', async (req, res) => {
   const userId = req.query.userId;
+  const instituteType = req.query.instituteType || 'other';
   let query = supabase
     .from('inactive_students')
     .select('*')
+    .eq('institute_type', instituteType)
     .order('moved_date', { ascending: false });
 
   if (userId) {
@@ -595,7 +635,8 @@ app.post('/reactivate/:id', async (req, res) => {
       address: student.address,
       attendance: student.attendance,
       status: 'active',
-      "beltColor": student.beltColor || 'white'
+      "beltColor": student.beltColor || 'white',
+      institute_type: student.institute_type || 'other'
     }]);
 
   if (insertError) return res.status(500).json({ error: insertError.message });
@@ -654,7 +695,8 @@ app.delete('/students/:id', async (req, res) => {
         address: student.address,
         attendance: student.attendance,
         "beltColor": student.beltColor,
-        user_id: student.user_id
+        user_id: student.user_id,
+        institute_type: student.institute_type || 'other'
     }]);
 
   if (insertError) return res.status(500).json({ error: insertError.message });

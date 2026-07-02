@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { API_BASE_URL } from '../config';
 
-const AddStudent = ({ onBack, onStudentAdded }) => {
+const AddStudent = ({ onBack, onStudentAdded, instituteType }) => {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
@@ -42,7 +42,8 @@ const AddStudent = ({ onBack, onStudentAdded }) => {
       monthlyFees: parseFloat(monthlyFees) || 0,
       attendance: {},
       feesPaid: {},
-      userId: user.id
+      userId: user.id,
+      instituteType
     };
 
     try {

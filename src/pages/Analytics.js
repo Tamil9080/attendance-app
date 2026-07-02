@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { API_BASE_URL } from '../config';
 
-const Analytics = ({ onBack }) => {
+const Analytics = ({ onBack, instituteType }) => {
   const [students, setStudents] = useState([]);
   const [analytics, setAnalytics] = useState([]);
   const [selectedPeriod, setSelectedPeriod] = useState('month');
@@ -10,7 +10,7 @@ const Analytics = ({ onBack }) => {
     const user = JSON.parse(localStorage.getItem('user'));
     const userId = user ? user.id : null;
 
-    fetch(`${API_BASE_URL}/students?userId=${userId}`)
+    fetch(`${API_BASE_URL}/students?userId=${userId}&instituteType=${instituteType}`)
       .then(res => res.json())
       .then(data => {
         if (Array.isArray(data)) {
@@ -22,7 +22,7 @@ const Analytics = ({ onBack }) => {
         }
       })
       .catch(e => console.error('Error loading students:', e));
-  }, [selectedPeriod]);
+  }, [selectedPeriod, instituteType]);
 
   const calculateAnalytics = (studentsData) => {
     const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',

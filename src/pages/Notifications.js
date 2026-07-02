@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { API_BASE_URL } from '../config';
 
-const Notifications = ({ onBack }) => {
+const Notifications = ({ onBack, instituteType }) => {
   const [students, setStudents] = useState([]);
   const [selectedStudents, setSelectedStudents] = useState([]);
   const [messageType, setMessageType] = useState('reminder');
@@ -13,7 +13,7 @@ const Notifications = ({ onBack }) => {
     const user = JSON.parse(localStorage.getItem('user'));
     const userId = user ? user.id : null;
 
-    fetch(`${API_BASE_URL}/students?userId=${userId}`)
+    fetch(`${API_BASE_URL}/students?userId=${userId}&instituteType=${instituteType}`)
       .then(res => res.json())
       .then(data => {
         if (Array.isArray(data)) {
@@ -29,7 +29,7 @@ const Notifications = ({ onBack }) => {
     if (saved) {
       setNotifications(JSON.parse(saved));
     }
-  }, []);
+  }, [instituteType]);
 
   const messageTemplates = {
     reminder: "Hi {name}, this is a reminder about your karate class today. See you there! 🥋",

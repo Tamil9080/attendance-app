@@ -46,23 +46,23 @@ async function testSupabase() {
     }
     console.log('');
 
-    // Try to query the attendance table
-    const { data: attendance, error: attendanceError } = await supabase
-      .from('attendance')
+    // Try to query the fees table
+    const { data: fees, error: feesError } = await supabase
+      .from('fees')
       .select('*')
       .limit(5);
     
-    if (attendanceError) {
-      console.error('❌ Error querying attendance table:', attendanceError.message);
-      console.log('   Details:', attendanceError);
+    if (feesError) {
+      console.error('❌ Error querying fees table:', feesError.message);
+      console.log('   Details:', feesError);
     } else {
-      console.log('✅ Successfully connected to attendance table');
-      console.log('   Found', attendance.length, 'attendance records (limited to 5)');
+      console.log('✅ Successfully connected to fees table');
+      console.log('   Found', fees.length, 'fees records (limited to 5)');
     }
     console.log('');
 
     // Summary
-    const hasErrors = studentsError || usersError || attendanceError;
+    const hasErrors = studentsError || usersError || feesError;
     if (!hasErrors) {
       console.log('🎉 All tests passed! Supabase is working properly.');
     } else {

@@ -1,15 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { API_BASE_URL } from '../config';
 
-const InactiveStudents = ({ onBack }) => {
+const InactiveStudents = ({ onBack, instituteType }) => {
   const [inactiveStudents, setInactiveStudents] = useState([]);
 
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem('user'));
     const userId = user ? user.id : null;
 
-    console.log('Loading inactive students from:', `${API_BASE_URL}/inactive-students?userId=${userId}`);
-    fetch(`${API_BASE_URL}/inactive-students?userId=${userId}`)
+    console.log('Loading inactive students from:', `${API_BASE_URL}/inactive-students?userId=${userId}&instituteType=${instituteType}`);
+    fetch(`${API_BASE_URL}/inactive-students?userId=${userId}&instituteType=${instituteType}`)
       .then(res => {
         console.log('Inactive students response status:', res.status);
         return res.json();
@@ -22,7 +22,7 @@ const InactiveStudents = ({ onBack }) => {
         console.error("Could not load inactive students", e);
         setInactiveStudents([]);
       });
-  }, []);
+  }, [instituteType]);
 
   const reactivateStudent = async (studentId, studentName) => {
     if (window.confirm(`Reactivate ${studentName}?`)) {
