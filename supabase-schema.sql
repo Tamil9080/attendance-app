@@ -14,7 +14,8 @@ create table if not exists users (
   email text unique,
   phone_number text,
   password text not null,
-  pin text default '1234'
+  pin text default '1234',
+  workspaces text default '["gym","school","college","other"]'
 );
 
 create table if not exists students (
