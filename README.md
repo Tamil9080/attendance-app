@@ -1,59 +1,36 @@
-# Attendance App 🥋
+This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
 
-A React-based attendance management system for martial arts classes with MySQL database.
+## Getting Started
 
-## Features
+First, run the development server:
 
-- ✅ PIN-based login (default: 1234)
-- ✅ Add/manage students
-- ✅ Mark attendance for Sundays
-- ✅ View attendance history
-- ✅ Inactive students management
-- ✅ Mobile responsive design
-- ✅ Settings to change PIN
+```bash
+npm run dev
+# or
+yarn dev
+# or
+pnpm dev
+# or
+bun dev
+```
 
-## Setup
+Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-1. **Install dependencies:**
-   ```bash
-   npm install
-   ```
+You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
 
-2. **Setup MySQL database:**
-   - Create database: `attendance_db`
-   - Update credentials in `server.js`
+This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
-3. **Start the application:**
-   ```bash
-   # Start server (port 3001)
-   npm run server
+## Learn More
 
-   # Start React app (port 3000)
-   npm start
-   ```
+To learn more about Next.js, take a look at the following resources:
 
-## Default Credentials
+- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
+- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
 
-- **PIN:** 1234 (can be changed in Settings)
+You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
 
-## Database Tables
+## Deploy on Vercel
 
-- `students` - Active students
-- `inactive_students` - Students who stopped attending
-- `users` - Login credentials
+The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
-## Usage
-
-1. Enter PIN to login
-2. Add students using "Add Student" button
-3. Mark attendance by clicking attendance buttons
-4. View detailed attendance in "View Attendance"
-5. Manage stopped students in "Stopped Students"
-6. Change PIN in Settings
-
-## Tech Stack
-
-- React.js
-- Node.js/Express
-- MySQL
-- HTML/CSS
+Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
